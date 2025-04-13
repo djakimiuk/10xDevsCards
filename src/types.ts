@@ -48,8 +48,12 @@ export type CreateGenerationRequestCommand = Pick<GenerationRequestRow, "source_
 export type AICandidateFlashcardDTO = AICandidateFlashcardRow;
 
 // Command Model dla aktualizacji kandydatowej fiszki (PUT /api/ai-candidates/{id}).
-// Umożliwia edycję pól "front" i "back".
-export type UpdateAICandidateFlashcardCommand = Pick<AICandidateFlashcardRow, "front" | "back">;
+// Umożliwia edycję pól "front", "back" i "explanation".
+export type UpdateAICandidateFlashcardCommand = {
+  front: string;
+  back: string;
+  explanation: string;
+};
 
 // Command Model dla zatwierdzania kandydatowej fiszki (POST /api/ai-candidates/{id}/accept).
 // Endpoint nie wymaga dodatkowych danych, dlatego typ jest pustym obiektem.
@@ -105,8 +109,19 @@ export interface CandidateViewModel {
   requestId: string;
   front: string;
   back: string;
+  confidence: number;
+  explanation: string;
   createdAt: string;
-  uiState: CandidateUIState;
-  editData?: { front: string; back: string };
-  errorMessage?: string;
+  uiState:
+    | "idle"
+    | "marked_for_acceptance"
+    | "marked_for_rejection"
+    | "editing"
+    | "saving"
+    | "saving_edit"
+    | "saved"
+    | "rejected"
+    | "error";
+  editData: UpdateAICandidateFlashcardCommand | null;
+  errorMessage: string | null;
 }

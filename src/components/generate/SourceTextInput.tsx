@@ -29,7 +29,7 @@ export function SourceTextInput({
           id="source-text"
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
-          placeholder="Paste your text here (min. 1000, max. 10000 characters)..."
+          placeholder="Paste your text here (min. 100, max. 10000 characters)..."
           disabled={isLoading}
           className="min-h-[200px] font-mono"
         />

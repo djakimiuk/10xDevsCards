@@ -68,14 +68,15 @@ export function CandidateCard({
   };
 
   return (
-    <Card className={`relative ${isSaved ? "opacity-50" : ""}`}>
+    <Card className={`relative ${isSaved || isRejected ? "opacity-50" : ""}`}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Flashcard
-          {(isAccepted || isRejected) && (
-            <span className="text-sm font-normal">
+          {(isAccepted || isRejected || isSaved) && (
+            <span className={`text-sm font-normal ${isRejected ? "text-destructive" : ""}`}>
               {isAccepted && "Marked for acceptance"}
-              {isRejected && "Marked for rejection"}
+              {isRejected && "Rejected"}
+              {isSaved && "Saved"}
             </span>
           )}
         </CardTitle>
@@ -84,7 +85,13 @@ export function CandidateCard({
 
       {isEditing ? (
         <EditCandidateForm
-          initialData={candidate.editData || { front: candidate.front, back: candidate.back }}
+          initialData={
+            candidate.editData || {
+              front: candidate.front,
+              back: candidate.back,
+              explanation: candidate.explanation,
+            }
+          }
           onSubmit={(data: UpdateAICandidateFlashcardCommand) => onEdit(candidate.id, data)}
           onCancel={() => onCancelEdit(candidate.id)}
           isSaving={candidate.uiState === "saving_edit"}
@@ -113,14 +120,19 @@ export function CandidateCard({
           <Button
             onClick={handleAcceptClick}
             variant={isAccepted ? "default" : "outline"}
-            disabled={isSaving || isSaved}
+            disabled={isSaving || isSaved || isRejected}
             className="flex-1"
           >
             <CheckIcon className="w-4 h-4 mr-1" />
             {isAccepted ? "Accepted" : "Accept"}
           </Button>
 
-          <Button onClick={handleEditClick} variant="outline" disabled={isSaving || isSaved} className="flex-1">
+          <Button
+            onClick={handleEditClick}
+            variant="outline"
+            disabled={isSaving || isSaved || isRejected}
+            className="flex-1"
+          >
             <PencilIcon className="w-4 h-4 mr-1" />
             Edit
           </Button>
@@ -130,7 +142,7 @@ export function CandidateCard({
               <Button
                 onClick={handleRejectClick}
                 variant={isRejected ? "destructive" : "outline"}
-                disabled={isSaving || isSaved}
+                disabled={isSaving || isSaved || isRejected}
                 className="flex-1"
               >
                 <XIcon className="w-4 h-4 mr-1" />

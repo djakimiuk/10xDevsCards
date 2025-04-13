@@ -1,14 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import type {
-  CreateGenerationRequestCommand,
-  GenerationRequestDTO,
-  AICandidateFlashcardDTO,
-  UpdateAICandidateFlashcardCommand,
-  CandidateViewModel,
-  CandidateUIState,
-} from "@/types";
+import { useState, useCallback } from "react";
+import type { CandidateViewModel, UpdateAICandidateFlashcardCommand } from "@/types";
+import type { FlashcardCandidate } from "@/lib/services/openrouter.types";
 
-// Pomocnicza funkcja do obsługi błędów HTTP
+// Helper function to handle HTTP errors
 const handleHttpError = async (response: Response): Promise<string> => {
   if (response.status === 401) {
     return "You are not authorized. Please log in again.";
@@ -27,7 +21,7 @@ const handleHttpError = async (response: Response): Promise<string> => {
   return "An unexpected error occurred. Please try again.";
 };
 
-// Pomocnicza funkcja do obsługi błędów sieciowych
+// Helper function to handle network errors
 const handleNetworkError = (error: unknown): string => {
   if (error instanceof TypeError && error.message === "Failed to fetch") {
     return "Network error. Please check your internet connection.";
@@ -35,25 +29,35 @@ const handleNetworkError = (error: unknown): string => {
   return error instanceof Error ? error.message : "An unexpected error occurred.";
 };
 
+// Helper function to convert FlashcardCandidate to CandidateViewModel
+const convertToViewModel = (candidate: FlashcardCandidate): CandidateViewModel => ({
+  id: candidate.id ?? crypto.randomUUID(),
+  requestId: candidate.requestId ?? crypto.randomUUID(),
+  front: candidate.front,
+  back: candidate.back,
+  confidence: candidate.confidence,
+  explanation: candidate.explanation,
+  createdAt: candidate.createdAt ?? new Date().toISOString(),
+  uiState: "idle",
+  editData: null,
+  errorMessage: null,
+});
+
 export function useGenerationProcess() {
-  // Stan tekstu źródłowego i walidacji
+  // Source text state and validation
   const [sourceText, setSourceText] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Stan procesu generowania
+  // Generation process state
   const [isLoading, setIsLoading] = useState(false);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generationRequest, setGenerationRequest] = useState<GenerationRequestDTO | null>(null);
   const [candidates, setCandidates] = useState<CandidateViewModel[]>([]);
 
-  // Ref dla interwału pollingu
-  const pollingIntervalId = useRef<NodeJS.Timeout | null>(null);
-
-  // Walidacja tekstu wejściowego
+  // Input text validation
   const validateSourceText = useCallback((text: string): string | null => {
-    if (text.length < 1000) {
-      return "Text must be at least 1000 characters long";
+    if (text.length < 100) {
+      return "Text must be at least 100 characters long";
     }
     if (text.length > 10000) {
       return "Text cannot be longer than 10000 characters";
@@ -61,7 +65,7 @@ export function useGenerationProcess() {
     return null;
   }, []);
 
-  // Rozpoczęcie procesu generowania
+  // Start generation process
   const startGeneration = useCallback(async () => {
     const validationError = validateSourceText(sourceText);
     if (validationError) {
@@ -74,20 +78,23 @@ export function useGenerationProcess() {
     setCandidates([]);
 
     try {
-      const command: CreateGenerationRequestCommand = { source_text: sourceText };
-      const response = await fetch("/api/generation-requests", {
+      const response = await fetch("/api/flashcards/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(command),
+        body: JSON.stringify({ text: sourceText }),
       });
 
       if (!response.ok) {
         throw new Error(await handleHttpError(response));
       }
 
-      const request: GenerationRequestDTO = await response.json();
-      setGenerationRequest(request);
-      startPolling(request.id);
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message || "Failed to generate flashcards");
+      }
+
+      const newCandidates = data.flashcards.map(convertToViewModel);
+      setCandidates(newCandidates);
     } catch (err) {
       setError(handleNetworkError(err));
     } finally {
@@ -95,47 +102,7 @@ export function useGenerationProcess() {
     }
   }, [sourceText, validateSourceText]);
 
-  // Rozpoczęcie pollingu dla kandydatów
-  const startPolling = useCallback((requestId: string) => {
-    if (pollingIntervalId.current) {
-      clearInterval(pollingIntervalId.current);
-    }
-
-    const pollCandidates = async () => {
-      try {
-        const response = await fetch(`/api/ai-candidates?generationRequestId=${requestId}`);
-        if (!response.ok) {
-          throw new Error(await handleHttpError(response));
-        }
-
-        const data = await response.json();
-        const newCandidates: CandidateViewModel[] = data.aiCandidates.map((dto: AICandidateFlashcardDTO) => ({
-          id: dto.id,
-          requestId: dto.request_id,
-          front: dto.front,
-          back: dto.back,
-          createdAt: dto.created_at,
-          uiState: "idle",
-        }));
-
-        setCandidates(newCandidates);
-
-        if (newCandidates.length > 0) {
-          clearInterval(pollingIntervalId.current!);
-          pollingIntervalId.current = null;
-        }
-      } catch (err) {
-        setError(handleNetworkError(err));
-        clearInterval(pollingIntervalId.current!);
-        pollingIntervalId.current = null;
-      }
-    };
-
-    pollingIntervalId.current = setInterval(pollCandidates, 2000);
-    pollCandidates();
-  }, []);
-
-  // Oznaczenie kandydata do akceptacji
+  // Mark candidate for acceptance
   const markForAcceptance = useCallback((candidateId: string) => {
     setCandidates((prev) =>
       prev.map((c) =>
@@ -146,7 +113,7 @@ export function useGenerationProcess() {
     );
   }, []);
 
-  // Oznaczenie kandydata do odrzucenia
+  // Mark candidate for rejection
   const markForRejection = useCallback((candidateId: string) => {
     setCandidates((prev) =>
       prev.map((c) =>
@@ -157,52 +124,23 @@ export function useGenerationProcess() {
     );
   }, []);
 
-  // Aktualizacja kandydata (edycja)
-  const updateCandidate = useCallback(async (candidateId: string, data: UpdateAICandidateFlashcardCommand) => {
-    setCandidates((prev) => prev.map((c) => (c.id === candidateId ? { ...c, uiState: "saving_edit" } : c)));
-
-    try {
-      const response = await fetch(`/api/ai-candidates/${candidateId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error(await handleHttpError(response));
-      }
-
-      const updated: AICandidateFlashcardDTO = await response.json();
-      setCandidates((prev) =>
-        prev.map((c) =>
-          c.id === candidateId
-            ? {
-                ...c,
-                front: updated.front,
-                back: updated.back,
-                uiState: "idle",
-                editData: undefined,
-              }
-            : c
-        )
-      );
-    } catch (err) {
-      const errorMessage = handleNetworkError(err);
-      setCandidates((prev) =>
-        prev.map((c) =>
-          c.id === candidateId
-            ? {
-                ...c,
-                uiState: "error",
-                errorMessage,
-              }
-            : c
-        )
-      );
-    }
+  // Update candidate (edit)
+  const updateCandidate = useCallback((candidateId: string, data: UpdateAICandidateFlashcardCommand) => {
+    setCandidates((prev) =>
+      prev.map((c) =>
+        c.id === candidateId
+          ? {
+              ...c,
+              front: data.front,
+              back: data.back,
+              uiState: "idle",
+            }
+          : c
+      )
+    );
   }, []);
 
-  // Ustawienie trybu edycji
+  // Set candidate to edit mode
   const setCandidateToEdit = useCallback((candidateId: string) => {
     setCandidates((prev) =>
       prev.map((c) =>
@@ -210,61 +148,50 @@ export function useGenerationProcess() {
           ? {
               ...c,
               uiState: "editing",
-              editData: { front: c.front, back: c.back },
+              editData: {
+                front: c.front,
+                back: c.back,
+                explanation: c.explanation,
+              },
             }
           : c
       )
     );
   }, []);
 
-  // Anulowanie trybu edycji
+  // Cancel edit mode
   const cancelEdit = useCallback((candidateId: string) => {
-    setCandidates((prev) =>
-      prev.map((c) =>
-        c.id === candidateId
-          ? {
-              ...c,
-              uiState: "idle",
-              editData: undefined,
-            }
-          : c
-      )
-    );
+    setCandidates((prev) => prev.map((c) => (c.id === candidateId ? { ...c, uiState: "idle", editData: null } : c)));
   }, []);
 
-  // Zapisanie wszystkich oznaczonych kandydatów
+  // Save all marked candidates
   const saveAllMarkedCandidates = useCallback(async () => {
     setIsBulkSaving(true);
-    let hasErrors = false;
+    setError(null);
 
     try {
-      for (const candidate of candidates) {
-        if (candidate.uiState === "marked_for_acceptance") {
-          setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "saving" } : c)));
+      const markedCandidates = candidates.filter(
+        (c) => c.uiState === "marked_for_acceptance" || c.uiState === "marked_for_rejection"
+      );
 
-          try {
+      // Update UI state to saving for all marked candidates
+      setCandidates((prev) =>
+        prev.map((c) => (markedCandidates.some((mc) => mc.id === c.id) ? { ...c, uiState: "saving" } : c))
+      );
+
+      // Process each candidate
+      for (const candidate of markedCandidates) {
+        try {
+          if (candidate.uiState === "marked_for_acceptance") {
             const response = await fetch(`/api/ai-candidates/${candidate.id}/accept`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({}),
             });
 
             if (!response.ok) {
               throw new Error(await handleHttpError(response));
             }
-
-            setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "saved" } : c)));
-          } catch (err) {
-            hasErrors = true;
-            const errorMessage = handleNetworkError(err);
-            setCandidates((prev) =>
-              prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "error", errorMessage } : c))
-            );
-          }
-        } else if (candidate.uiState === "marked_for_rejection") {
-          setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "saving" } : c)));
-
-          try {
+          } else if (candidate.uiState === "marked_for_rejection") {
             const response = await fetch(`/api/ai-candidates/${candidate.id}`, {
               method: "DELETE",
             });
@@ -272,74 +199,84 @@ export function useGenerationProcess() {
             if (!response.ok) {
               throw new Error(await handleHttpError(response));
             }
-
-            setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "rejected" } : c)));
-          } catch (err) {
-            hasErrors = true;
-            const errorMessage = handleNetworkError(err);
-            setCandidates((prev) =>
-              prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "error", errorMessage } : c))
-            );
           }
+        } catch (err) {
+          // Update UI state to error for this candidate
+          setCandidates((prev) =>
+            prev.map((c) =>
+              c.id === candidate.id ? { ...c, uiState: "error", errorMessage: handleNetworkError(err) } : c
+            )
+          );
+          return; // Exit early if there's an error
         }
       }
 
-      if (hasErrors) {
-        setError("Some flashcards failed to save. Please check individual cards for details.");
+      // Remove all processed candidates that didn't error out
+      setCandidates((prev) =>
+        prev.filter((c) => !markedCandidates.some((mc) => mc.id === c.id) || c.uiState === "error")
+      );
+
+      // Clear source text if all candidates were processed successfully
+      if (!prev.some((c) => c.uiState === "error")) {
+        setSourceText("");
       }
+    } catch (err) {
+      setError("Some flashcards failed to save. Please check individual cards for details.");
     } finally {
       setIsBulkSaving(false);
     }
   }, [candidates]);
 
-  // Zapisanie tylko zaakceptowanych kandydatów
+  // Save only accepted candidates
   const saveOnlyAcceptedCandidates = useCallback(async () => {
     setIsBulkSaving(true);
-    let hasErrors = false;
+    setError(null);
 
     try {
-      for (const candidate of candidates) {
-        if (candidate.uiState === "marked_for_acceptance") {
-          setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "saving" } : c)));
+      const acceptedCandidates = candidates.filter((c) => c.uiState === "marked_for_acceptance");
 
-          try {
-            const response = await fetch(`/api/ai-candidates/${candidate.id}/accept`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({}),
-            });
+      // Update UI state to saving for accepted candidates
+      setCandidates((prev) =>
+        prev.map((c) => (acceptedCandidates.some((ac) => ac.id === c.id) ? { ...c, uiState: "saving" } : c))
+      );
 
-            if (!response.ok) {
-              throw new Error(await handleHttpError(response));
-            }
+      // Process each accepted candidate
+      for (const candidate of acceptedCandidates) {
+        try {
+          const response = await fetch(`/api/ai-candidates/${candidate.id}/accept`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
 
-            setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "saved" } : c)));
-          } catch (err) {
-            hasErrors = true;
-            const errorMessage = handleNetworkError(err);
-            setCandidates((prev) =>
-              prev.map((c) => (c.id === candidate.id ? { ...c, uiState: "error", errorMessage } : c))
-            );
+          if (!response.ok) {
+            throw new Error(await handleHttpError(response));
           }
+        } catch (err) {
+          // Update UI state to error for this candidate
+          setCandidates((prev) =>
+            prev.map((c) =>
+              c.id === candidate.id ? { ...c, uiState: "error", errorMessage: handleNetworkError(err) } : c
+            )
+          );
+          return; // Exit early if there's an error
         }
       }
 
-      if (hasErrors) {
-        setError("Some flashcards failed to save. Please check individual cards for details.");
+      // Remove all successfully processed candidates
+      setCandidates((prev) =>
+        prev.filter((c) => !acceptedCandidates.some((ac) => ac.id === c.id) || c.uiState === "error")
+      );
+
+      // Clear source text if all candidates were processed successfully
+      if (!prev.some((c) => c.uiState === "error")) {
+        setSourceText("");
       }
+    } catch (err) {
+      setError("Some flashcards failed to save. Please check individual cards for details.");
     } finally {
       setIsBulkSaving(false);
     }
   }, [candidates]);
-
-  // Czyszczenie interwału przy odmontowaniu
-  useEffect(() => {
-    return () => {
-      if (pollingIntervalId.current) {
-        clearInterval(pollingIntervalId.current);
-      }
-    };
-  }, []);
 
   return {
     sourceText,
