@@ -82,3 +82,31 @@ export interface GetGenerationRequestsResponseDTO {
 export interface GetAICandidatesResponseDTO {
   aiCandidates: AICandidateFlashcardDTO[];
 }
+
+/* **********************************************************************
+ * View Models dla komponentów
+ * **********************************************************************/
+
+// Typ dla stanu UI kandydata
+export type CandidateUIState =
+  | "idle"
+  | "editing"
+  | "saving_edit"
+  | "marked_for_acceptance"
+  | "marked_for_rejection"
+  | "saving"
+  | "saved"
+  | "rejected"
+  | "error";
+
+// Model widoku dla kandydata
+export interface CandidateViewModel {
+  id: string;
+  requestId: string;
+  front: string;
+  back: string;
+  createdAt: string;
+  uiState: CandidateUIState;
+  editData?: { front: string; back: string };
+  errorMessage?: string;
+}

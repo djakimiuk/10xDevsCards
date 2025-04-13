@@ -2,7 +2,7 @@
 
 ## 1. Przegląd produktu
 
-AI Flashcard Generator to aplikacja webowa zaprojektowana, aby pomóc użytkownikom, w szczególności osobom uczącym się programowania, w efektywnym tworzeniu fiszek edukacyjnych. Aplikacja wykorzystuje sztuczną inteligencję (model Gemini Flash) do automatycznego generowania fiszek na podstawie dostarczonego przez użytkownika tekstu, znacząco redukując czas potrzebny na ich manualne przygotowanie. Użytkownicy mogą również tworzyć fiszki ręcznie, zarządzać swoimi zestawami oraz wykorzystywać je w procesie nauki opartym o metodę powtórek rozłożonych w czasie (spaced repetition), dzięki integracji z gotową biblioteką open-source. Aplikacja w wersji MVP skupia się na podstawowej funkcjonalności generowania, zarządzania i nauki, z prostym systemem kont użytkowników do przechowywania danych.
+AI Flashcard Generator to aplikacja webowa zaprojektowana, aby pomóc użytkownikom, w szczególności osobom uczącym się programowania, w efektywnym tworzeniu fiszek edukacyjnych. Aplikacja wykorzystuje sztuczną inteligencję do automatycznego generowania fiszek na podstawie dostarczonego przez użytkownika tekstu, znacząco redukując czas potrzebny na ich manualne przygotowanie. Użytkownicy mogą również tworzyć fiszki ręcznie, zarządzać swoimi zestawami oraz wykorzystywać je w procesie nauki opartym o metodę powtórek rozłożonych w czasie (spaced repetition), dzięki integracji z gotową biblioteką open-source. Aplikacja w wersji MVP skupia się na podstawowej funkcjonalności generowania, zarządzania i nauki, z prostym systemem kont użytkowników do przechowywania danych.
 
 ## 2. Problem użytkownika
 
@@ -17,7 +17,7 @@ Wersja MVP (Minimum Viable Product) aplikacji będzie zawierać następujące fu
   - Logowanie istniejącego użytkownika za pomocą loginu i hasła.
 - FR-002: Generowanie fiszek przez AI:
   - Możliwość wprowadzenia (wklejenia) tekstu źródłowego o długości od 1000 do 10 000 znaków.
-  - Wykorzystanie modelu AI Gemini Flash do generowania propozycji fiszek (przód/tył) na podstawie wprowadzonego tekstu.
+  - Wykorzystanie modelu AI do generowania propozycji fiszek (przód/tył) na podstawie wprowadzonego tekstu.
   - Zachowanie podstawowego formatowania tekstu, w tym formatowania bloków kodu, w generowanych fiszkach.
   - Obsługa limitów znaków dla fiszek: max 200 znaków dla "przodu" i max 500 znaków dla "tyłu".
   - Mechanizm ponawiania próby generowania w przypadku niepowodzenia po stronie AI.
@@ -103,7 +103,7 @@ Następujące funkcjonalności i cechy NIE wchodzą w zakres wersji MVP:
   - System sprawdza, czy długość wklejonego tekstu mieści się w zakresie 1000 - 10 000 znaków.
   - Jeśli tekst jest za krótki (< 1000 znaków), wyświetlany jest komunikat błędu i generowanie nie jest uruchamiane.
   - Jeśli tekst jest za długi (> 10 000 znaków), wyświetlany jest komunikat błędu i generowanie nie jest uruchamiane.
-  - Po kliknięciu przycisku generowania (dla poprawnego tekstu), system wysyła tekst do API AI (Gemini Flash) z odpowiednio przygotowanym promptem.
+  - Po kliknięciu przycisku generowania (dla poprawnego tekstu), system wysyła tekst do API AI z odpowiednio przygotowanym promptem.
   - Podczas przetwarzania przez AI użytkownik widzi wskaźnik postępu lub informację o trwającym procesie.
 
 - ID: US-005
