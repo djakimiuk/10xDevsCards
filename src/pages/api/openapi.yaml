@@ -1,0 +1,102 @@
+openapi: 3.0.0
+info:
+  title: 10xDevsCards API
+  version: 1.0.0
+  description: API for managing flashcards in the 10xDevsCards application
+
+paths:
+  /api/flashcards:
+    post:
+      summary: Create a new flashcard
+      description: Creates a new flashcard with the provided content. Currently uses a default user ID as authentication is not implemented yet.
+      tags:
+        - Flashcards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - front
+                - back
+              properties:
+                front:
+                  type: string
+                  maxLength: 200
+                  description: The front text of the flashcard (question/content)
+                  example: "What is TypeScript?"
+                back:
+                  type: string
+                  maxLength: 500
+                  description: The back text of the flashcard (answer/explanation)
+                  example: "TypeScript is a strongly typed programming language that builds on JavaScript."
+      responses:
+        "201":
+          description: Flashcard created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - front
+                  - back
+                  - source
+                  - created_at
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier of the created flashcard
+                  front:
+                    type: string
+                    description: The front text of the flashcard
+                  back:
+                    type: string
+                    description: The back text of the flashcard
+                  source:
+                    type: string
+                    enum: [MANUAL, AI]
+                    description: Source of the flashcard (always MANUAL for this endpoint)
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the flashcard was created
+        "400":
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid input"
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        message:
+                          type: string
+                        path:
+                          type: array
+                          items:
+                            type: string
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
+                  code:
+                    type: string
+                    enum: [DATABASE, UNKNOWN]
+                    example: "DATABASE"
