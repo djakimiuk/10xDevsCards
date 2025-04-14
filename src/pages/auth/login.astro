@@ -1,0 +1,14 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { loginUser } from "@/lib/auth";
+
+// Disable SSR for this page as it needs to be dynamic
+export const prerender = false;
+---
+
+<Layout title="Login - 10xDevsCards">
+  <main class="container max-w-4xl mx-auto p-6 flex items-center justify-center">
+    <LoginForm client:load onSubmit={loginUser} />
+  </main>
+</Layout>

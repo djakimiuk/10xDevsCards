@@ -1,0 +1,14 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { RegisterForm } from "@/components/auth/RegisterForm";
+import { registerUser } from "@/lib/auth";
+
+// Disable SSR for this page as it needs to be dynamic
+export const prerender = false;
+---
+
+<Layout title="Create Account - 10xDevsCards">
+  <main class="container max-w-4xl mx-auto p-6 flex items-center justify-center">
+    <RegisterForm client:load onSubmit={registerUser} />
+  </main>
+</Layout>
