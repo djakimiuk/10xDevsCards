@@ -5,52 +5,56 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { registerUser } from "@/lib/auth";
 
-interface RegisterFormProps {
-  onSubmit: (email: string, password: string, confirmPassword: string) => Promise<void>;
-  isLoading?: boolean;
-  error?: string | null;
-}
-
-export function RegisterForm({ onSubmit, isLoading = false, error = null }: RegisterFormProps) {
+export function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const validateForm = () => {
     if (!email) {
-      setValidationError("Email is required");
+      setError("Email jest wymagany");
       return false;
     }
     if (!password) {
-      setValidationError("Password is required");
+      setError("Hasło jest wymagane");
       return false;
     }
     if (!confirmPassword) {
-      setValidationError("Please confirm your password");
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setValidationError("Please enter a valid email address");
-      return false;
-    }
-    if (password.length < 6) {
-      setValidationError("Password must be at least 6 characters long");
+      setError("Potwierdzenie hasła jest wymagane");
       return false;
     }
     if (password !== confirmPassword) {
-      setValidationError("Passwords do not match");
+      setError("Hasła nie są identyczne");
       return false;
     }
-    setValidationError(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Podaj poprawny adres email");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Hasło musi mieć co najmniej 6 znaków");
+      return false;
+    }
+    setError(null);
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      await onSubmit(email, password, confirmPassword);
+    if (!validateForm()) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      await registerUser(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Wystąpił nieoczekiwany błąd");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,8 +63,8 @@ export function RegisterForm({ onSubmit, isLoading = false, error = null }: Regi
       <h1 className="text-4xl font-bold text-center tracking-tight">10x Devs Cards</h1>
       <Card className="w-full">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Sign up to start creating flashcards</CardDescription>
+          <CardTitle className="text-2xl">Rejestracja</CardTitle>
+          <CardDescription>Utwórz nowe konto, aby rozpocząć naukę</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="p-6 pt-0 space-y-4">
@@ -69,14 +73,14 @@ export function RegisterForm({ onSubmit, isLoading = false, error = null }: Regi
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder="twoj@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Hasło</Label>
               <Input
                 id="password"
                 type="password"
@@ -86,7 +90,7 @@ export function RegisterForm({ onSubmit, isLoading = false, error = null }: Regi
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Potwierdź hasło</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -96,9 +100,9 @@ export function RegisterForm({ onSubmit, isLoading = false, error = null }: Regi
               />
             </div>
 
-            {(validationError || error) && (
+            {error && (
               <Alert variant="destructive">
-                <AlertDescription>{validationError || error}</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
           </CardContent>
@@ -108,16 +112,15 @@ export function RegisterForm({ onSubmit, isLoading = false, error = null }: Regi
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  Tworzenie konta...
                 </>
               ) : (
-                "Create Account"
+                "Zarejestruj się"
               )}
             </Button>
             <div className="text-sm text-center">
-              Already have an account?{" "}
               <a href="/auth/login" className="text-primary hover:underline">
-                Login here
+                Masz już konto? Zaloguj się
               </a>
             </div>
           </CardFooter>

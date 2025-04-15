@@ -1,11 +1,15 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import { GenerateView } from "@/components/generate/GenerateView";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 ---
 
 <Layout title="Generate Flashcards with AI">
   <div class="container mx-auto py-8">
-    <h1 class="text-3xl font-bold mb-6">Generate Flashcards with AI</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">Generate Flashcards with AI</h1>
+      <LogoutButton client:load />
+    </div>
     <GenerateView client:load />
   </div>
 </Layout>

@@ -1,105 +1,125 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, KeyRound } from "lucide-react";
+import { sendPasswordResetEmail } from "@/lib/auth";
+import { useSupabaseEvents } from "@/hooks/useSupabaseEvents";
 
-interface ForgotPasswordFormProps {
-  onSubmit: (email: string) => Promise<void>;
-  isLoading?: boolean;
-  error?: string | null;
-  success?: boolean;
-}
-
-export function ForgotPasswordForm({
-  onSubmit,
-  isLoading = false,
-  error = null,
-  success = false,
-}: ForgotPasswordFormProps) {
+export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
+  // Automatycznie ukryj komunikat sukcesu po 5 sekundach
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  // Handler dla eventu z tokenem resetującym
+  const handleResetLink = useCallback(
+    (payload: { email: string; token: string; message: string }) => {
+      if (payload.email === email) {
+        setSuccess(true);
+        setResetToken(payload.token);
+      }
+    },
+    [email]
+  );
+
+  // Nasłuchuj na eventy z tokenem resetującym
+  useSupabaseEvents("password_reset_link", handleResetLink);
 
   const validateForm = () => {
     if (!email) {
-      setValidationError("Email is required");
+      setError("Email jest wymagany");
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setValidationError("Please enter a valid email address");
+      setError("Podaj poprawny adres email");
       return false;
     }
-    setValidationError(null);
+    setError(null);
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      await onSubmit(email);
+    if (!validateForm()) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      await sendPasswordResetEmail(email);
+      setSuccess(true);
+      setEmail(""); // Czyścimy pole po udanym wysłaniu
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Wystąpił nieoczekiwany błąd");
+      setSuccess(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-8">
+    <div className="w-full max-w-md space-y-8">
       <h1 className="text-4xl font-bold text-center tracking-tight">10x Devs Cards</h1>
-      <Card className="w-full">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Reset Password</CardTitle>
-          <CardDescription>Enter your email to receive a password reset link</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="p-6 pt-0 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading || success}
-              />
-            </div>
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Reset hasła</h2>
+        <p className="text-muted-foreground mt-2">Wprowadź swój adres email, a wyślemy Ci link do zresetowania hasła</p>
+      </div>
 
-            {success && (
-              <Alert>
-                <AlertDescription>
-                  If an account exists with this email, you will receive a password reset link shortly.
-                </AlertDescription>
-              </Alert>
-            )}
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        {success && (
+          <Alert className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription>Link do resetowania hasła został wysłany na podany adres email.</AlertDescription>
+          </Alert>
+        )}
 
-            {(validationError || error) && (
-              <Alert variant="destructive">
-                <AlertDescription>{validationError || error}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
-            <Button type="submit" className="w-full" disabled={isLoading || success}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending reset link...
-                </>
-              ) : success ? (
-                "Reset Link Sent"
-              ) : (
-                "Send Reset Link"
-              )}
-            </Button>
-            <div className="text-sm text-center space-x-1">
-              <a href="/auth/login" className="text-primary hover:underline">
-                Back to login
-              </a>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium">
+            Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="mt-1"
+            placeholder="twoj@email.com"
+            disabled={isLoading || success}
+          />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Button type="submit" disabled={isLoading || success} className="w-full">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? "Wysyłanie..." : "Wyślij link do resetowania"}
+          </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Pamiętasz hasło?{" "}
+            <a href="/auth/login" className="font-medium text-primary hover:underline">
+              Wróć do logowania
+            </a>
+          </p>
+        </div>
+      </form>
     </div>
   );
 }

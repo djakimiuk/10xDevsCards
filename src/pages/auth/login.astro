@@ -1,14 +1,26 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { loginUser } from "@/lib/auth";
+import { createSupabaseServerInstance } from "@/lib/supabase.server";
 
 // Disable SSR for this page as it needs to be dynamic
 export const prerender = false;
+
+// Sprawdzamy czy użytkownik nie jest już zalogowany
+const { cookies } = Astro;
+const supabase = createSupabaseServerInstance({ cookies, headers: Astro.request.headers });
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+// Jeśli użytkownik jest zalogowany, przekieruj do /generate
+if (user) {
+  return Astro.redirect("/generate");
+}
 ---
 
 <Layout title="Login - 10xDevsCards">
   <main class="container max-w-4xl mx-auto p-6 flex items-center justify-center">
-    <LoginForm client:load onSubmit={loginUser} />
+    <LoginForm client:load />
   </main>
 </Layout>

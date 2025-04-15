@@ -1,108 +1,142 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
+import { loginUser } from "@/lib/auth";
 
-interface LoginFormProps {
-  onSubmit: (email: string, password: string) => Promise<void>;
-  isLoading?: boolean;
-  error?: string | null;
-}
-
-export function LoginForm({ onSubmit, isLoading = false, error = null }: LoginFormProps) {
+export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("registration") === "success") {
+      setRegistrationSuccess(true);
+      // Usuń parametr z URL bez przeładowania strony
+      window.history.replaceState({}, "", window.location.pathname);
+
+      // Ukryj komunikat po 5 sekundach
+      const timer = setTimeout(() => {
+        setRegistrationSuccess(false);
+      }, 5000);
+
+      // Cleanup timeout przy odmontowaniu komponentu
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const validateForm = () => {
     if (!email) {
-      setValidationError("Email is required");
+      setError("Email jest wymagany");
       return false;
     }
     if (!password) {
-      setValidationError("Password is required");
+      setError("Hasło jest wymagane");
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setValidationError("Please enter a valid email address");
+      setError("Podaj poprawny adres email");
       return false;
     }
-    setValidationError(null);
+    setError(null);
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      await onSubmit(email, password);
+    if (!validateForm()) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      await loginUser(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Wystąpił nieoczekiwany błąd");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-8">
+    <div className="w-full max-w-md space-y-8">
       <h1 className="text-4xl font-bold text-center tracking-tight">10x Devs Cards</h1>
-      <Card className="w-full">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="p-6 pt-0 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Zaloguj się do aplikacji</h2>
+        <p className="text-muted-foreground mt-2">Wprowadź swoje dane aby się zalogować</p>
+      </div>
 
-            {(validationError || error) && (
-              <Alert variant="destructive">
-                <AlertDescription>{validationError || error}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        {registrationSuccess && (
+          <Alert className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription>Konto zostało pomyślnie utworzone. Możesz się teraz zalogować.</AlertDescription>
+          </Alert>
+        )}
 
-          <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                "Login"
-              )}
-            </Button>
-            <div className="text-sm text-center space-x-1">
-              <a href="/auth/forgot-password" className="text-primary hover:underline">
-                Forgot password?
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1"
+              placeholder="twoj@email.com"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium">
+              Hasło
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? "Logowanie..." : "Zaloguj się"}
+          </Button>
+
+          <div className="flex flex-col gap-2 text-center text-sm text-muted-foreground">
+            <a href="/auth/forgot-password" className="font-medium text-primary hover:underline">
+              Zapomniałeś hasła?
+            </a>
+            <p>
+              Nie masz jeszcze konta?{" "}
+              <a href="/auth/register" className="font-medium text-primary hover:underline">
+                Zarejestruj się
               </a>
-              <span>·</span>
-              <a href="/auth/register" className="text-primary hover:underline">
-                Create account
-              </a>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
+            </p>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
