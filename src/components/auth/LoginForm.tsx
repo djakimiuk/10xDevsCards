@@ -64,23 +64,23 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="w-full max-w-md space-y-8" data-test-id="login-form-container">
       <h1 className="text-4xl font-bold text-center tracking-tight">10x Devs Cards</h1>
       <div className="text-center">
         <h2 className="text-2xl font-bold">Zaloguj się do aplikacji</h2>
         <p className="text-muted-foreground mt-2">Wprowadź swoje dane aby się zalogować</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6" data-test-id="login-form">
         {registrationSuccess && (
-          <Alert className="bg-green-50 text-green-700 border-green-200">
+          <Alert className="bg-green-50 text-green-700 border-green-200" data-test-id="registration-success-alert">
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription>Konto zostało pomyślnie utworzone. Możesz się teraz zalogować.</AlertDescription>
           </Alert>
         )}
 
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" data-test-id="login-error-alert">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -99,6 +99,7 @@ export function LoginForm() {
               className="mt-1"
               placeholder="twoj@email.com"
               disabled={isLoading}
+              data-test-id="login-email-input"
             />
           </div>
 
@@ -114,23 +115,32 @@ export function LoginForm() {
               required
               className="mt-1"
               disabled={isLoading}
+              data-test-id="login-password-input"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-4">
-          <Button type="submit" disabled={isLoading} className="w-full">
+          <Button type="submit" disabled={isLoading} className="w-full" data-test-id="login-submit-button">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isLoading ? "Logowanie..." : "Zaloguj się"}
           </Button>
 
           <div className="flex flex-col gap-2 text-center text-sm text-muted-foreground">
-            <a href="/auth/forgot-password" className="font-medium text-primary hover:underline">
+            <a
+              href="/auth/forgot-password"
+              className="font-medium text-primary hover:underline"
+              data-test-id="forgot-password-link"
+            >
               Zapomniałeś hasła?
             </a>
             <p>
               Nie masz jeszcze konta?{" "}
-              <a href="/auth/register" className="font-medium text-primary hover:underline">
+              <a
+                href="/auth/register"
+                className="font-medium text-primary hover:underline"
+                data-test-id="register-link"
+              >
                 Zarejestruj się
               </a>
             </p>

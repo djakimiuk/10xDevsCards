@@ -1,35 +1,44 @@
 import { test, expect } from "@playwright/test";
-import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
 
-test.describe("Home Page", () => {
-  test("should load the home page correctly", async ({ page }) => {
-    // Create a new instance of the HomePage page object
-    const homePage = new HomePage(page);
+test.describe("Login page tests", () => {
+  let loginPage: LoginPage;
 
-    // Navigate to the home page
-    await homePage.goto();
-
-    // Wait for the page to load
-    await homePage.waitForPageLoad();
-
-    // Take a screenshot for visual comparison
-    await expect(page).toHaveScreenshot("home-page.png");
+  // Setup before each test
+  test.beforeEach(async ({ page }) => {
+    loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.waitForPageLoad();
   });
 
-  test("should have the correct title", async ({ page }) => {
-    const homePage = new HomePage(page);
-    await homePage.goto();
+  test("should load the login page", async ({ page }) => {
+    // Verify the page loaded successfully
+    await expect(page).toHaveURL(/.*localhost:3000\/auth\/login/);
+  });
 
-    // Example of checking the title - adjust based on your actual content
-    await homePage.expectPageTitle("10x Devs Cards");
+  test("should have the correct page title", async ({ page }) => {
+    // Verify the page title matches the expected format
+    const title = await page.title();
+    expect(title).toContain("Login");
+  });
+
+  test("should have login form elements", async () => {
+    // Verify that form elements are visible
+    await expect(loginPage.emailInput).toBeVisible();
+    await expect(loginPage.passwordInput).toBeVisible();
+    await expect(loginPage.submitButton).toBeVisible();
   });
 
   test("should have navigation links", async ({ page }) => {
-    const homePage = new HomePage(page);
-    await homePage.goto();
+    // Check that register and forgot password links exist
+    await expect(loginPage.registerLink).toBeVisible();
+    await expect(loginPage.forgotPasswordLink).toBeVisible();
 
-    // Check if navigation links exist
-    const navLinks = await homePage.getNavLinks();
-    expect(navLinks.length).toBeGreaterThan(0);
+    // Verify the href attributes
+    const registerHref = await loginPage.registerLink.getAttribute("href");
+    expect(registerHref).toBe("/auth/register");
+
+    const forgotPasswordHref = await loginPage.forgotPasswordLink.getAttribute("href");
+    expect(forgotPasswordHref).toBe("/auth/forgot-password");
   });
 });

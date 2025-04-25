@@ -68,12 +68,18 @@ export function CandidateCard({
   };
 
   return (
-    <Card className={`relative ${isSaved || isRejected ? "opacity-50" : ""}`}>
+    <Card
+      className={`relative ${isSaved || isRejected ? "opacity-50" : ""}`}
+      data-test-id={`candidate-card-${candidate.id}`}
+    >
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Flashcard
           {(isAccepted || isRejected || isSaved) && (
-            <span className={`text-sm font-normal ${isRejected ? "text-destructive" : ""}`}>
+            <span
+              className={`text-sm font-normal ${isRejected ? "text-destructive" : ""}`}
+              data-test-id={`candidate-status-${candidate.id}`}
+            >
               {isAccepted && "Marked for acceptance"}
               {isRejected && "Rejected"}
               {isSaved && "Saved"}
@@ -100,15 +106,25 @@ export function CandidateCard({
         <CardContent className="space-y-4">
           <div>
             <h3 className="text-sm font-medium mb-2">Front</h3>
-            <pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-2 rounded-md">{candidate.front}</pre>
+            <pre
+              className="whitespace-pre-wrap font-mono text-sm bg-muted p-2 rounded-md"
+              data-test-id={`candidate-front-${candidate.id}`}
+            >
+              {candidate.front}
+            </pre>
           </div>
           <div>
             <h3 className="text-sm font-medium mb-2">Back</h3>
-            <pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-2 rounded-md">{candidate.back}</pre>
+            <pre
+              className="whitespace-pre-wrap font-mono text-sm bg-muted p-2 rounded-md"
+              data-test-id={`candidate-back-${candidate.id}`}
+            >
+              {candidate.back}
+            </pre>
           </div>
 
           {hasError && candidate.errorMessage && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" data-test-id={`candidate-error-${candidate.id}`}>
               <AlertDescription>{candidate.errorMessage}</AlertDescription>
             </Alert>
           )}
@@ -122,6 +138,7 @@ export function CandidateCard({
             variant={isAccepted ? "default" : "outline"}
             disabled={isSaving || isSaved || isRejected}
             className="flex-1"
+            data-test-id={`candidate-accept-button-${candidate.id}`}
           >
             <CheckIcon className="w-4 h-4 mr-1" />
             {isAccepted ? "Accepted" : "Accept"}
@@ -132,6 +149,7 @@ export function CandidateCard({
             variant="outline"
             disabled={isSaving || isSaved || isRejected}
             className="flex-1"
+            data-test-id={`candidate-edit-button-${candidate.id}`}
           >
             <PencilIcon className="w-4 h-4 mr-1" />
             Edit
@@ -144,12 +162,13 @@ export function CandidateCard({
                 variant={isRejected ? "destructive" : "outline"}
                 disabled={isSaving || isSaved || isRejected}
                 className="flex-1"
+                data-test-id={`candidate-reject-button-${candidate.id}`}
               >
                 <XIcon className="w-4 h-4 mr-1" />
                 {isRejected ? "Rejected" : "Reject"}
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent data-test-id="reject-confirmation-dialog">
               <AlertDialogHeader>
                 <AlertDialogTitle>Reject Flashcard?</AlertDialogTitle>
                 <AlertDialogDescription>
@@ -157,8 +176,12 @@ export function CandidateCard({
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsConfirmingReject(false)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmReject}>Reject</AlertDialogAction>
+                <AlertDialogCancel onClick={() => setIsConfirmingReject(false)} data-test-id="reject-cancel-button">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmReject} data-test-id="reject-confirm-button">
+                  Reject
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

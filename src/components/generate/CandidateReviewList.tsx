@@ -19,9 +19,9 @@ export function CandidateReviewList({
   onCancelEdit,
 }: CandidateReviewListProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-test-id="candidate-review-list">
       <h2 className="text-xl font-semibold">Review Generated Flashcards</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-test-id="candidates-grid">
         {candidates.map((candidate) => (
           <CandidateCard
             key={candidate.id}

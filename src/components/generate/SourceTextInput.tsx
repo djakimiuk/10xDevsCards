@@ -20,7 +20,7 @@ export function SourceTextInput({
   charCount,
 }: SourceTextInputProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-test-id="source-text-container">
       <div className="space-y-2">
         <label htmlFor="source-text" className="text-sm font-medium">
           Source Text
@@ -32,17 +32,20 @@ export function SourceTextInput({
           placeholder="Paste your text here (min. 100, max. 10000 characters)..."
           disabled={isLoading}
           className="min-h-[200px] font-mono"
+          data-test-id="source-text-input"
         />
-        <p className="text-xs text-muted-foreground">{charCount}/10000 characters</p>
+        <p className="text-xs text-muted-foreground" data-test-id="character-count">
+          {charCount}/10000 characters
+        </p>
       </div>
 
       {validationError && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-test-id="source-text-error">
           <AlertDescription>{validationError}</AlertDescription>
         </Alert>
       )}
 
-      <Button onClick={onGenerateSubmit} disabled={isLoading || !!validationError}>
+      <Button onClick={onGenerateSubmit} disabled={isLoading || !!validationError} data-test-id="generate-button">
         {isLoading ? "Generating..." : "Generate Flashcards"}
       </Button>
     </div>

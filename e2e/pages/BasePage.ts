@@ -16,6 +16,7 @@ export default abstract class BasePage {
    * Navigate to the page
    */
   async goto() {
+    // Playwright automatycznie doda baseURL z konfiguracji
     await this.page.goto(this.url);
   }
 

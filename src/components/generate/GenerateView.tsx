@@ -24,7 +24,7 @@ export function GenerateView() {
   } = useGenerationProcess();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-test-id="generate-view">
       <SourceTextInput
         value={sourceText}
         onValueChange={setSourceText}
@@ -34,10 +34,14 @@ export function GenerateView() {
         charCount={sourceText.length}
       />
 
-      {(isLoading || error) && <GenerationStatus isLoading={isLoading} errorMessage={error} />}
+      {(isLoading || error) && (
+        <div data-test-id="generation-status-container">
+          <GenerationStatus isLoading={isLoading} errorMessage={error} />
+        </div>
+      )}
 
       {candidates.length > 0 && (
-        <>
+        <div data-test-id="candidates-section">
           <CandidateReviewList
             candidates={candidates}
             onMarkForAcceptance={markForAcceptance}
@@ -54,7 +58,7 @@ export function GenerateView() {
             canSave={candidates.length > 0}
             isGenerating={isLoading}
           />
-        </>
+        </div>
       )}
     </div>
   );
