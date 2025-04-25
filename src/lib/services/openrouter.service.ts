@@ -17,6 +17,15 @@ import type {
 } from "./openrouter.types";
 import { Logger } from "../logger";
 
+// Define interface for test options
+interface TestOptions {
+  isTest: boolean;
+  testApiKey: string;
+  testSiteUrl: string;
+  testModelName: string;
+  testSystemMessage: string;
+}
+
 export class OpenRouterService {
   // Public fields
   public readonly apiKey: string;
@@ -31,18 +40,30 @@ export class OpenRouterService {
   private readonly _baseDelay = 1000; // 1 second
   private readonly _logger: Logger;
   private readonly _defaultModel = "meta-llama/llama-4-maverick:free";
+  private _testOptions: TestOptions;
 
-  constructor() {
+  constructor(
+    options = {
+      isTest: false,
+      testApiKey: "",
+      testSiteUrl: "https://test.com",
+      testModelName: "google/gemini-2.5-pro-exp-03-25:free",
+      testSystemMessage: "You are a helpful assistant.",
+    }
+  ) {
     this._logger = new Logger("OpenRouterService");
 
-    const apiKey = import.meta.env.PUBLIC_OPENROUTER_API_KEY;
+    const apiKey = options.isTest ? options.testApiKey : import.meta.env.PUBLIC_OPENROUTER_API_KEY;
+
     if (!apiKey) {
       this._logger.error("Missing API key", { env: import.meta.env.MODE });
       throw new ValidationError("PUBLIC_OPENROUTER_API_KEY environment variable is not set");
     }
 
     this.apiKey = apiKey;
-    this.systemMessage = `You are an expert educational flashcard creator. Your task is to analyze the provided text and create effective flashcards for learning. You MUST generate at least 3-5 flashcards for any given text.
+    this.systemMessage = options.isTest
+      ? options.testSystemMessage
+      : `You are an expert educational flashcard creator. Your task is to analyze the provided text and create effective flashcards for learning. You MUST generate at least 3-5 flashcards for any given text.
 
 For each important concept, create a flashcard following these rules:
 1. Front: Create a clear, specific question that tests understanding
@@ -79,7 +100,7 @@ Focus on creating flashcards that:
 - Include practical examples
 
 Remember: You MUST generate at least 3-5 high-quality flashcards for the given text.`;
-    this.modelName = this._defaultModel;
+    this.modelName = options.isTest ? options.testModelName : this._defaultModel;
 
     this._logger.info("Initializing OpenRouter service", {
       model: this.modelName,
@@ -113,6 +134,9 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       this._logger.error("Invalid response format configuration", {}, error as Error);
       throw error;
     }
+
+    // Store site URL for tests
+    this._testOptions = options;
   }
 
   private _validateMessage(message: Message): Message {
@@ -267,12 +291,19 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     });
 
     try {
+      // Get site URL from options in test mode
+      const siteUrl = this._testOptions.isTest ? this._testOptions.testSiteUrl : import.meta.env.PUBLIC_SITE_URL;
+
+      if (!siteUrl) {
+        throw new ValidationError("PUBLIC_SITE_URL environment variable is not set");
+      }
+
       const response = await fetch(this._apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
-          "HTTP-Referer": import.meta.env.PUBLIC_SITE_URL,
+          "HTTP-Referer": siteUrl,
           "X-Title": import.meta.env.PUBLIC_APP_TITLE,
         },
         body: JSON.stringify(requestBody),
@@ -339,42 +370,12 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
 
       return await this._retryWithExponentialBackoff(async () => {
         try {
-          const siteUrl = import.meta.env.PUBLIC_SITE_URL;
-          if (!siteUrl) {
-            throw new ValidationError("PUBLIC_SITE_URL environment variable is not set");
-          }
-
-          const response = await fetch(this._apiEndpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.apiKey}`,
-              "HTTP-Referer": siteUrl,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            this._logger.error("API request failed", {
-              status: response.status,
-              statusText: response.statusText,
-              error: errorText,
-            });
-            throw new APIError(`OpenRouter API error: ${response.status} ${response.statusText}`, response.status);
-          }
-
-          const content = await response.text();
-
-          if (!content) {
-            throw new ValidationError("Empty response from OpenRouter API");
-          }
-
-          const parsedResponse = this._parseResponse(content);
+          const response = await this._makeRequest([systemMsg, userMsg], this.modelParams);
+          const parsedResponse = this._parseResponse(response);
           const validatedResponse = ChatCompletionResponseSchema.parse(parsedResponse);
 
           this._logger.debug("Successfully parsed API response", {
-            responseLength: content.length,
+            responseLength: response.length,
             flashcardsCount: validatedResponse.flashcards?.length ?? 0,
           });
 

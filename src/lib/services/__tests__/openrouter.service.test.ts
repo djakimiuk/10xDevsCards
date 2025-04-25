@@ -5,34 +5,44 @@ import { ValidationError, NetworkError, APIError } from "../openrouter.types";
 describe("OpenRouterService", () => {
   const mockApiKey = "test-api-key";
   const mockSiteUrl = "https://test.com";
+  const mockSystemMessage = "You are a helpful assistant.";
+  const mockModelName = "google/gemini-2.5-pro-exp-03-25:free";
   let service: OpenRouterService;
+  const testOptions = {
+    isTest: true,
+    testApiKey: mockApiKey,
+    testSiteUrl: mockSiteUrl,
+    testModelName: mockModelName,
+    testSystemMessage: mockSystemMessage,
+  };
 
   beforeEach(() => {
-    // Mock environment variables
-    process.env.OPENROUTER_API_KEY = mockApiKey;
-    process.env.PUBLIC_SITE_URL = mockSiteUrl;
-
     // Mock fetch
     global.fetch = vi.fn();
 
-    service = new OpenRouterService();
+    // Create service with complete test options
+    service = new OpenRouterService(testOptions);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.PUBLIC_SITE_URL;
   });
 
   describe("constructor", () => {
     it("should throw ValidationError when API key is not set", () => {
-      delete process.env.OPENROUTER_API_KEY;
-      expect(() => new OpenRouterService()).toThrow(ValidationError);
+      // Create service with empty test API key
+      expect(
+        () =>
+          new OpenRouterService({
+            ...testOptions,
+            testApiKey: "",
+          })
+      ).toThrow(ValidationError);
     });
 
     it("should initialize with default values", () => {
-      expect(service.modelName).toBe("google/gemini-2.5-pro-exp-03-25:free");
-      expect(service.systemMessage).toBe("You are a helpful assistant.");
+      expect(service.modelName).toBe(mockModelName);
+      expect(service.systemMessage).toBe(mockSystemMessage);
       expect(service.modelParams).toEqual({
         temperature: 0.7,
         max_tokens: 150,
@@ -43,6 +53,7 @@ describe("OpenRouterService", () => {
   describe("setModelParams", () => {
     it("should update model parameters", () => {
       const newParams = {
+        model: mockModelName,
         temperature: 0.5,
         max_tokens: 200,
       };
@@ -52,6 +63,7 @@ describe("OpenRouterService", () => {
 
     it("should throw ValidationError for invalid parameters", () => {
       const invalidParams = {
+        model: mockModelName,
         temperature: 3, // Should be between 0 and 2
         max_tokens: -1, // Should be positive
       };
