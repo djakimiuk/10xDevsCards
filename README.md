@@ -33,6 +33,13 @@ AI Flashcard Generator utilizes AI (specifically the Gemini Flash model via Open
 - **CI/CD & Hosting:**
   - [GitHub Actions](https://github.com/features/actions): Continuous Integration & Deployment pipelines.
   - [DigitalOcean](https://www.digitalocean.com/): Application hosting (via Docker).
+- **Testing:**
+  - [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/): Unit testing React components and functions.
+  - [Playwright](https://playwright.dev/): End-to-end (E2E) testing and browser automation.
+  - [MSW](https://mswjs.io/): Mock Service Worker for API mocking in tests.
+  - [axe-core](https://github.com/dequelabs/axe-core): Accessibility testing integrated with Playwright.
+  - [Storybook](https://storybook.js.org/): Component development and UI testing.
+  - [Chromatic](https://www.chromatic.com/): Visual regression testing.
 
 ## Getting Started Locally
 

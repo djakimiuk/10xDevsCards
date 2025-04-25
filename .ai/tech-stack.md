@@ -20,5 +20,24 @@ AI - Komunikacja z modelami przez usługę Openrouter.ai:
 
 CI/CD i Hosting:
 
-- Github Actions do tworzenia pipeline’ów CI/CD
+- Github Actions do tworzenia pipeline'ów CI/CD
 - DigitalOcean do hostowania aplikacji za pośrednictwem obrazu docker
+
+Testy:
+
+- Testy jednostkowe:
+  - Vitest + Testing Library (React) do testowania komponentów i funkcji
+  - TypeScript integration tests do weryfikacji typów
+- Testy integracyjne:
+  - MSW (Mock Service Worker) do mockowania API
+  - Supabase Testing Framework dla integracji z bazą danych
+  - TanStack Query Test dla stanów zapytań i mutacji API
+- Testy end-to-end (E2E):
+  - Playwright do automatyzacji testów w przeglądarkach
+  - axe-core zintegrowany z Playwright do testów dostępności
+- Testy UI i wizualne:
+  - Storybook do izolowanego testowania komponentów
+  - Chromatic do testów regresji wizualnych
+- Testy wydajnościowe:
+  - Grafana k6 do testów obciążeniowych API
+  - React Profiler do testów wydajności komponentów
