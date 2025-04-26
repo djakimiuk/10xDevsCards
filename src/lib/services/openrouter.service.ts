@@ -366,8 +366,6 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         content: userMessage,
       });
 
-      const payload = this._formatPayload([systemMsg, userMsg]);
-
       return await this._retryWithExponentialBackoff(async () => {
         try {
           const response = await this._makeRequest([systemMsg, userMsg], this.modelParams);
