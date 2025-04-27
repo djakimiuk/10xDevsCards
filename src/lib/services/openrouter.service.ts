@@ -184,64 +184,59 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     this._logger.debug("Raw response received", { response });
 
     try {
-      // Parse the raw response as JSON first
-      const responseObj = JSON.parse(response);
+      // First, try to parse the raw string directly
+      try {
+        const parsed = JSON.parse(response);
 
-      if (!responseObj.choices?.[0]?.message?.content) {
-        this._logger.error("Invalid API response structure", { data: responseObj });
-        throw new ValidationError("Invalid response structure from OpenRouter API");
+        // Check if this is already a valid format
+        if (parsed.flashcards && Array.isArray(parsed.flashcards) && parsed.reference) {
+          return ChatCompletionResponseSchema.parse(parsed);
+        }
+      } catch (error) {
+        // If direct parsing fails, continue with standard flow
+        this._logger.debug("Direct JSON parsing failed, trying alternative methods", {
+          error: (error as Error).message,
+        });
       }
 
-      const content = responseObj.choices[0].message.content;
+      // Try to parse as a response object
+      try {
+        const responseObj = JSON.parse(response);
+
+        // Handle the case where response was not extracted properly in _makeRequest
+        if (
+          responseObj.choices &&
+          responseObj.choices.length > 0 &&
+          responseObj.choices[0].message &&
+          responseObj.choices[0].message.content
+        ) {
+          const content = responseObj.choices[0].message.content;
+          const contentObj = JSON.parse(content);
+          return ChatCompletionResponseSchema.parse(contentObj);
+        }
+      } catch (error) {
+        this._logger.debug("Response object parsing failed", {
+          error: (error as Error).message,
+        });
+      }
 
       // Try to extract JSON from markdown code block
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
-      if (!jsonMatch) {
-        // If no markdown block found, try to parse the content directly
+      const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[1].trim();
+        this._logger.debug("Attempting to parse JSON from markdown", { jsonStr });
+
         try {
-          const parsed = JSON.parse(content);
+          const parsed = JSON.parse(jsonStr);
           return ChatCompletionResponseSchema.parse(parsed);
-        } catch {
-          throw new ValidationError("No valid JSON found in response");
+        } catch (error) {
+          this._logger.error("Failed to parse JSON from markdown", { error, jsonStr });
+          throw new ValidationError(`Invalid JSON in markdown: ${(error as Error).message}`);
         }
       }
 
-      const jsonStr = jsonMatch[1].trim();
-      this._logger.debug("Attempting to parse JSON string", { jsonStr });
-
-      let parsed;
-      try {
-        parsed = JSON.parse(jsonStr);
-      } catch (error) {
-        this._logger.error("Failed to parse JSON response", { error, jsonStr });
-        throw new ValidationError(`Invalid JSON response from OpenRouter: ${(error as Error).message}`);
-      }
-
-      this._logger.debug("Successfully parsed JSON", { parsed });
-
-      // Validate the parsed response against our schema
-      try {
-        const validated = ChatCompletionResponseSchema.parse(parsed);
-
-        // Additional validation for flashcards array
-        if (!validated.flashcards || validated.flashcards.length === 0) {
-          throw new ValidationError("Response contains no flashcards");
-        }
-
-        // Log successful validation
-        this._logger.debug("Response validation successful", {
-          flashcardsCount: validated.flashcards.length,
-          referenceLength: validated.reference.length,
-        });
-
-        return validated;
-      } catch (error) {
-        this._logger.error("Response validation failed", { error, parsed });
-        if (error instanceof z.ZodError) {
-          throw new ValidationError(`Response schema validation failed: ${error.message}`);
-        }
-        throw new ValidationError("Response does not match expected schema");
-      }
+      // At this point, we've exhausted all options
+      throw new ValidationError("No valid JSON found in response");
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;
@@ -267,9 +262,16 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
 
       if (retryCount >= this._maxRetries) {
         this._logger.error(`Max retries (${this._maxRetries}) reached`, { retryCount });
+
+        // Ensure we're throwing the right error type
+        if (error instanceof Error && error.message.includes("Failed to fetch")) {
+          throw new NetworkError(error.message);
+        }
+
         if (error instanceof NetworkError || error instanceof APIError) {
           throw error;
         }
+
         throw new NetworkError(`Max retries reached: ${(error as Error).message}`);
       }
 
@@ -332,14 +334,23 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         choicesCount: data.choices?.length,
       });
 
+      // Extract content directly
+      if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+        return data.choices[0].message.content;
+      }
+
+      // Fallback: return entire response as string
       return JSON.stringify(data);
     } catch (error) {
       this._logger.error("Failed to make OpenRouter API request", { error });
       if (error instanceof NetworkError || error instanceof APIError || error instanceof ValidationError) {
         throw error;
       }
-      if (error instanceof Error) {
+      if (error instanceof Error && error.message.includes("Failed to fetch")) {
         throw new NetworkError(`Failed to fetch: ${error.message}`);
+      }
+      if (error instanceof Error) {
+        throw new NetworkError(`API request failed: ${error.message}`);
       }
       throw new NetworkError("Failed to make OpenRouter API request");
     }

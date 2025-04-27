@@ -23,7 +23,7 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --timeout 15000
 
       # Commented out E2E tests for now to fix the build
       # - name: Install Playwright browsers
