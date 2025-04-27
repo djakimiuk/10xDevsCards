@@ -44,8 +44,9 @@ describe("OpenRouterService", () => {
       expect(service.modelName).toBe(mockModelName);
       expect(service.systemMessage).toBe(mockSystemMessage);
       expect(service.modelParams).toEqual({
+        model: mockModelName,
         temperature: 0.7,
-        max_tokens: 150,
+        max_tokens: 4000,
       });
     });
   });

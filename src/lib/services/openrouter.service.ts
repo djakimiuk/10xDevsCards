@@ -115,7 +115,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       });
     } catch (error) {
       this._logger.error("Invalid default model parameters", {}, error as Error);
-      throw error;
+      throw new ValidationError("Invalid default model parameters");
     }
 
     try {
@@ -132,7 +132,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       });
     } catch (error) {
       this._logger.error("Invalid response format configuration", {}, error as Error);
-      throw error;
+      throw new ValidationError("Invalid response format configuration");
     }
 
     // Store site URL for tests
@@ -154,7 +154,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       if (error instanceof z.ZodError) {
         throw new ValidationError(`Invalid message format: ${error.message}`);
       }
-      throw error;
+      throw new ValidationError("Invalid message format");
     }
   }
 
@@ -188,6 +188,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       const responseObj = JSON.parse(response);
 
       if (!responseObj.choices?.[0]?.message?.content) {
+        this._logger.error("Invalid API response structure", { data: responseObj });
         throw new ValidationError("Invalid response structure from OpenRouter API");
       }
 
@@ -254,147 +255,122 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     try {
       return await operation();
     } catch (error) {
-      if (error instanceof NetworkError || (error instanceof APIError && error.status >= 500)) {
-        if (retryCount < this._maxRetries) {
-          const delay = this._baseDelay * Math.pow(2, retryCount);
-          this._logger.warn("Retrying failed request", {
-            retryCount: retryCount + 1,
-            maxRetries: this._maxRetries,
-            delayMs: delay,
-            errorType: error.constructor.name,
-            errorMessage: error.message,
-          });
-
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          return this._retryWithExponentialBackoff(operation, retryCount + 1);
-        }
-
-        this._logger.error(
-          "Max retries exceeded",
-          {
-            maxRetries: this._maxRetries,
-            errorType: error.constructor.name,
-          },
-          error as Error
-        );
+      // Don't retry certain errors
+      if (error instanceof ValidationError) {
+        throw error;
       }
-      throw error;
+
+      // Don't retry APIError with non-5xx status
+      if (error instanceof APIError && (error.status < 500 || error.status >= 600)) {
+        throw error;
+      }
+
+      if (retryCount >= this._maxRetries) {
+        this._logger.error(`Max retries (${this._maxRetries}) reached`, { retryCount });
+        if (error instanceof NetworkError || error instanceof APIError) {
+          throw error;
+        }
+        throw new NetworkError(`Max retries reached: ${(error as Error).message}`);
+      }
+
+      // Calculate exponential backoff delay with jitter
+      const delay = this._baseDelay * Math.pow(2, retryCount) * (0.5 + Math.random() * 0.5);
+      this._logger.warn(`Operation failed, retrying in ${Math.round(delay)}ms`, {
+        retryCount: retryCount + 1,
+        maxRetries: this._maxRetries,
+        error: (error as Error).message,
+      });
+
+      // Wait for the backoff delay
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      // Retry with incremented count
+      return this._retryWithExponentialBackoff(operation, retryCount + 1);
     }
   }
 
-  private async _makeRequest(messages: Message[], modelParams: ModelParams): Promise<string> {
-    const requestBody = this._formatPayload(messages);
+  private async _makeRequest(messages: Message[]): Promise<string> {
+    const payload = this._formatPayload(messages);
 
     this._logger.debug("Making request to OpenRouter", {
       messageCount: messages.length,
-      temperature: modelParams.temperature,
+      temperature: payload.temperature,
     });
 
     try {
-      // Get site URL from options in test mode
-      const siteUrl = this._testOptions.isTest ? this._testOptions.testSiteUrl : import.meta.env.PUBLIC_SITE_URL;
-
-      if (!siteUrl) {
-        throw new ValidationError("PUBLIC_SITE_URL environment variable is not set");
-      }
-
       const response = await fetch(this._apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
-          "HTTP-Referer": siteUrl,
-          "X-Title": import.meta.env.PUBLIC_APP_TITLE,
+          "HTTP-Referer": this._testOptions.testSiteUrl,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(payload),
       });
 
+      // Handle HTTP errors
       if (!response.ok) {
-        const errorBody = await response.text();
-        this._logger.error("OpenRouter API request failed", {
+        const statusCode = response.status;
+        const errorMessage = `OpenRouter API error: ${response.status} ${response.statusText}`;
+        this._logger.error("OpenRouter API error", {
           status: response.status,
           statusText: response.statusText,
-          errorBody,
         });
-        throw new Error(`OpenRouter API request failed: ${response.status} ${response.statusText}`);
+
+        // Handle 5xx errors differently for retry logic
+        if (statusCode >= 500 && statusCode < 600) {
+          throw new NetworkError(`Server error: ${statusCode} ${response.statusText}`);
+        } else {
+          throw new APIError(errorMessage, statusCode);
+        }
       }
 
+      // Parse JSON response
       const data = await response.json();
-
-      if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-        this._logger.error("Invalid API response structure", { data });
-        throw new Error("Invalid response structure from OpenRouter API");
-      }
-
-      const content = data.choices[0]?.message?.content;
-      if (!content) {
-        this._logger.error("No content in API response", { data });
-        throw new Error("No content received from OpenRouter API");
-      }
-
       this._logger.debug("Successfully received API response", {
-        contentLength: content.length,
-        choicesCount: data.choices.length,
+        contentLength: JSON.stringify(data).length,
+        choicesCount: data.choices?.length,
       });
 
-      return content;
+      return JSON.stringify(data);
     } catch (error) {
       this._logger.error("Failed to make OpenRouter API request", { error });
-      if (error instanceof Error) {
-        throw new Error(`OpenRouter API request failed: ${error.message}`);
+      if (error instanceof NetworkError || error instanceof APIError || error instanceof ValidationError) {
+        throw error;
       }
-      throw new Error("Failed to make OpenRouter API request");
+      if (error instanceof Error) {
+        throw new NetworkError(`Failed to fetch: ${error.message}`);
+      }
+      throw new NetworkError("Failed to make OpenRouter API request");
     }
   }
 
   public async sendMessage(userMessage: string): Promise<ResponseType> {
-    const requestLogger = this._logger.child("sendMessage");
+    this._logger.info("Sending message to OpenRouter", {
+      messageLength: userMessage.length,
+      model: this.modelName,
+    });
 
     try {
-      requestLogger.info("Sending message to OpenRouter", {
-        messageLength: userMessage.length,
-        model: this.modelName,
-      });
+      // Prepare messages array with system prompt and user message
+      const messages: Message[] = [
+        {
+          role: "system",
+          content: this.systemMessage,
+        },
+        this._validateMessage({
+          role: "user",
+          content: userMessage,
+        }),
+      ];
 
-      const systemMsg = this._validateMessage({
-        role: "system",
-        content: this.systemMessage,
-      });
+      // Make request with retry logic
+      const responseText = await this._retryWithExponentialBackoff(() => this._makeRequest(messages));
 
-      const userMsg = this._validateMessage({
-        role: "user",
-        content: userMessage,
-      });
-
-      return await this._retryWithExponentialBackoff(async () => {
-        try {
-          const response = await this._makeRequest([systemMsg, userMsg], this.modelParams);
-          const parsedResponse = this._parseResponse(response);
-          const validatedResponse = ChatCompletionResponseSchema.parse(parsedResponse);
-
-          this._logger.debug("Successfully parsed API response", {
-            responseLength: response.length,
-            flashcardsCount: validatedResponse.flashcards?.length ?? 0,
-          });
-
-          return validatedResponse;
-        } catch (error) {
-          if (error instanceof TypeError) {
-            const networkError = new NetworkError("Network request failed");
-            requestLogger.error(
-              "Network request failed",
-              {
-                endpoint: this._apiEndpoint,
-              },
-              networkError
-            );
-            throw networkError;
-          }
-          throw error;
-        }
-      });
+      // Parse and validate the response
+      return this._parseResponse(responseText);
     } catch (error) {
-      requestLogger.error(
+      this._logger.error(
         "Message sending failed",
         {
           messageLength: userMessage.length,
@@ -402,25 +378,22 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         },
         error as Error
       );
-      throw error;
+      throw error; // Re-throw with original error class preserved
     }
   }
 
   public setModelParams(params: ModelParams): void {
+    this._logger.info("Updating model parameters", { newParams: params });
     try {
-      this._logger.info("Updating model parameters", { newParams: params });
       this.modelParams = ModelParamsSchema.parse(params);
     } catch (error) {
       this._logger.error("Invalid model parameters", { params }, error as Error);
-      if (error instanceof z.ZodError) {
-        throw new ValidationError(`Invalid model parameters: ${error.message}`);
-      }
-      throw error;
+      throw new ValidationError(`Invalid model parameters: ${(error as Error).message}`);
     }
   }
 
   public getResponse(): ResponseType {
-    this._logger.warn("getResponse() called - method not implemented");
+    this._logger.warn("getResponse() called - method not implemented", {});
     throw new Error("getResponse() must be called after sendMessage()");
   }
 }
