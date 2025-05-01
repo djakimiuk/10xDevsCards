@@ -74,6 +74,7 @@ export default tseslint.config(
       "*.mjs",
       "test-*.js",
       "test-*.mjs",
+      "e2e/**/*.ts",
     ],
   },
   baseConfig,

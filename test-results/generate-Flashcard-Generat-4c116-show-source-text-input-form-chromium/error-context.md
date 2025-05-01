@@ -109,30 +109,30 @@ Call log:
    59 |
    60 |     // Create a long enough text for generation (> 1000 characters)
    61 |     const longText = `
-   62 |       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-   63 |       Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+   62 |       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+   63 |       Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
    64 |       Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
    65 |       Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-   66 |       
-   67 |       JavaScript is a high-level, interpreted programming language that conforms to the ECMAScript specification. 
+   66 |
+   67 |       JavaScript is a high-level, interpreted programming language that conforms to the ECMAScript specification.
    68 |       It is multi-paradigm, supporting event-driven, functional, and imperative programming styles.
-   69 |       
-   70 |       React is a JavaScript library for building user interfaces. It allows developers to create large 
-   71 |       web applications that can change data, without reloading the page. The main purpose of React is 
+   69 |
+   70 |       React is a JavaScript library for building user interfaces. It allows developers to create large
+   71 |       web applications that can change data, without reloading the page. The main purpose of React is
    72 |       to be fast, scalable, and simple.
-   73 |       
-   74 |       TypeScript is a strict syntactical superset of JavaScript and adds optional static typing to the language. 
+   73 |
+   74 |       TypeScript is a strict syntactical superset of JavaScript and adds optional static typing to the language.
    75 |       It is designed for the development of large applications and transcompiles to JavaScript.
-   76 |       
-   77 |       Tailwind CSS is a utility-first CSS framework that provides a set of utility classes to style elements 
+   76 |
+   77 |       Tailwind CSS is a utility-first CSS framework that provides a set of utility classes to style elements
    78 |       directly in the markup. It promotes a different way of styling compared to traditional approaches.
-   79 |       
-   80 |       Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit 
-   81 |       with a single API. Playwright is built to enable cross-browser web automation that is ever-green, 
+   79 |
+   80 |       Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit
+   81 |       with a single API. Playwright is built to enable cross-browser web automation that is ever-green,
    82 |       capable, reliable and fast.
-   83 |       
-   84 |       Continuous Integration (CI) is a development practice that requires developers to integrate code into 
-   85 |       a shared repository several times a day. Each check-in is then verified by an automated build, allowing 
+   83 |
+   84 |       Continuous Integration (CI) is a development practice that requires developers to integrate code into
+   85 |       a shared repository several times a day. Each check-in is then verified by an automated build, allowing
    86 |       teams to detect problems early.
    87 |     `.repeat(3); // Repeat to ensure we have enough text
    88 |
