@@ -1,11 +1,11 @@
 import { LogLevel } from "./types";
 
-class Logger {
+export class Logger {
   private static instance: Logger;
   private logLevel: LogLevel = LogLevel.INFO;
 
   // Private constructor to enforce singleton pattern
-  private constructor() {
+  constructor(private context?: string) {
     // No initialization needed
   }
 
@@ -27,15 +27,16 @@ class Logger {
 
   private formatMessage(level: LogLevel, message: string, meta?: unknown): string {
     const timestamp = new Date().toISOString();
+    const contextStr = this.context ? `[${this.context}] ` : "";
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : "";
-    return `[${timestamp}] ${level}: ${message}${metaStr}`;
+    return `[${timestamp}] ${level}: ${contextStr}${message}${metaStr}`;
   }
 
-  error(message: string, meta?: unknown) {
+  error(message: string, meta?: unknown, error?: Error) {
     if (this.shouldLog(LogLevel.ERROR)) {
       const formattedMessage = this.formatMessage(LogLevel.ERROR, message, meta);
       // Use console.error for errors as they need to be visible in production
-      console.error(formattedMessage);
+      console.error(formattedMessage, error);
     }
   }
 
