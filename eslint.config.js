@@ -58,6 +58,24 @@ const reactConfig = tseslint.config({
 
 export default tseslint.config(
   includeIgnoreFile(gitignorePath),
+  {
+    ignores: [
+      "dist/",
+      "node_modules/",
+      ".astro/",
+      ".vscode/",
+      "*.log",
+      "*.md",
+      "*.yml",
+      "*.yaml",
+      "*.json",
+      "*.lock",
+      "*.ps1",
+      "*.mjs",
+      "test-*.js",
+      "test-*.mjs",
+    ],
+  },
   baseConfig,
   jsxA11yConfig,
   reactConfig,

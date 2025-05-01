@@ -16,10 +16,6 @@ export default class AuthPage extends BasePage {
   readonly forgotPasswordLinkSelector = 'a[href*="forgot-password"]';
   readonly errorMessageSelector = '[role="alert"]';
 
-  constructor(page: Page) {
-    super(page);
-  }
-
   // Metody dostępu do elementów
   get emailInput() {
     return this.page.locator(this.emailInputSelector);
