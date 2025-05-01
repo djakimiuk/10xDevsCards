@@ -1,39 +1,29 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { logoutUser } from "@/lib/auth";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export function LogoutButton() {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      await logoutUser();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/auth/login");
     } catch (error) {
-      // Błędy wylogowywania są już obsługiwane w funkcji logoutUser
+      logger.error("Error during logout", { error });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleError = (error: unknown) => {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    return "An unexpected error occurred";
-  };
-
   return (
-    <Button variant="outline" onClick={handleLogout} disabled={isLoading}>
-      {isLoading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Wylogowywanie...
-        </>
-      ) : (
-        "Wyloguj"
-      )}
+    <Button onClick={handleLogout} disabled={isLoading}>
+      {isLoading ? "Wylogowywanie..." : "Wyloguj"}
     </Button>
   );
 }

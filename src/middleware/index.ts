@@ -1,5 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 import { createSupabaseServerInstance } from "../lib/supabase.server";
+import { getSession } from "../lib/session";
 
 // Ścieżki publiczne, dostępne bez logowania
 const PUBLIC_PATHS = ["/auth/login", "/auth/register", "/auth/forgot-password"];
@@ -24,7 +25,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Zapisanie danych użytkownika w locals
     locals.user = {
       id: user.id,
-      email: user.email!,
+      email: user.email || "",
     };
 
     // Jeśli próbuje dostać się do strony logowania, przekieruj do /generate
@@ -36,6 +37,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   else {
     // Jeśli próbuje dostać się do chronionej strony, przekieruj do logowania
     if (!PUBLIC_PATHS.includes(url.pathname)) {
+      const session = await getSession(context.request);
+      if (!session) {
+        return redirect("/auth/login");
+      }
       return redirect("/auth/login");
     }
   }

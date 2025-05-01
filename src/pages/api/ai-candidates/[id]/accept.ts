@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { DEFAULT_USER_ID } from "../../../../db/supabase.client";
+import { logger } from "../../../../lib/logger";
 
 export const prerender = false;
 
@@ -14,6 +15,8 @@ export const POST: APIRoute = async ({ params, locals }) => {
     }
 
     const supabase = locals.supabase;
+
+    logger.info("Accepting AI candidate", { id });
 
     // Get the candidate flashcard
     const { data: candidate, error: fetchError } = await supabase
@@ -65,7 +68,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
       .single();
 
     if (insertError) {
-      console.error("Error inserting flashcard:", insertError);
+      logger.error("Error inserting flashcard:", { error: insertError });
       return new Response(
         JSON.stringify({
           error: "Failed to create flashcard",
@@ -81,7 +84,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
     const { error: deleteError } = await supabase.from("ai_candidate_flashcards").delete().eq("id", id);
 
     if (deleteError) {
-      console.error("Error deleting candidate:", deleteError);
+      logger.error("Error deleting candidate:", { error: deleteError });
       // Note: At this point the flashcard was created but the candidate wasn't deleted
       // In a real production system, we'd want to handle this case more gracefully
       return new Response(
@@ -106,7 +109,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
       }
     );
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Error in POST /api/ai-candidates/[id]/accept", { error });
     return new Response(
       JSON.stringify({
         error: "An unexpected error occurred",

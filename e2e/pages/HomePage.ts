@@ -1,11 +1,12 @@
 import type { Page, Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { logger } from "../../src/lib/logger";
 import BasePage from "./BasePage";
 
 /**
- * LoginPage page object for testing the login page
+ * HomePage page object for testing the home page
  */
-export default class LoginPage extends BasePage {
+export default class HomePage extends BasePage {
   // Define locators for elements on the page
   readonly pageTitle: Locator;
   readonly loginForm: Locator;
@@ -18,7 +19,7 @@ export default class LoginPage extends BasePage {
 
   constructor(page: Page) {
     // Pass the page and the URL to the base class
-    super(page, "/auth/login");
+    super(page, "/");
 
     // Initialize locators
     this.pageTitle = page.locator("title");
@@ -80,16 +81,14 @@ export default class LoginPage extends BasePage {
    * Debug method to log all links on the page
    */
   async debugLinks() {
-    // Log the HTML structure to help debug navigation issues
     const html = await this.page.content();
-    console.log("HTML Structure:", html.substring(0, 500) + "...");
+    logger.debug("HTML Structure:", html.substring(0, 500) + "...");
 
-    // Log all links with their text and href
     const allLinks = await this.page.locator("a").all();
-    for (let i = 0; i < allLinks.length; i++) {
-      const text = await allLinks[i].textContent();
-      const href = await allLinks[i].getAttribute("href");
-      console.log(`Link ${i}: Text="${text}", href="${href}"`);
+    for (const link of allLinks) {
+      const text = await link.textContent();
+      const href = await link.getAttribute("href");
+      logger.debug(`Link: Text="${text}", href="${href}"`);
     }
   }
 }

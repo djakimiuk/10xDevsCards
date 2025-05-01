@@ -1,4 +1,4 @@
-export type FlashcardCandidate = {
+export interface FlashcardCandidate {
   front: string;
   back: string;
   explanation: string;
@@ -6,4 +6,4 @@ export type FlashcardCandidate = {
   id?: string;
   requestId?: string;
   createdAt?: string;
-};
+}

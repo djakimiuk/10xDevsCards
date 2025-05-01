@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { logger } from "../src/lib/logger";
 import LoginPage from "./pages/LoginPage";
 import GeneratePage from "./pages/GeneratePage";
 
@@ -10,19 +11,22 @@ test.describe("Flashcard Generation", () => {
     await loginPage.waitForPageLoad();
 
     // Pobierz dane z zmiennych środowiskowych z .env.test
-    const testEmail = process.env.DEFAULT_USER_EMAIL;
-    const testPassword = process.env.DEFAULT_USER_PASSWORD;
+    const email = process.env.DEFAULT_USER_EMAIL;
+    const password = process.env.DEFAULT_USER_PASSWORD;
+    if (!email || !password) {
+      throw new Error("Default user credentials not set in environment variables");
+    }
 
     // Sprawdź, czy zmienne są zdefiniowane
-    expect(testEmail).toBeDefined();
-    expect(testPassword).toBeDefined();
+    expect(email).toBeDefined();
+    expect(password).toBeDefined();
 
     // Login with test credentials
-    await loginPage.login(testEmail!, testPassword!);
+    await loginPage.login(email, password);
 
     // Poczekaj na przekierowanie do strony /generate
     await page.waitForURL(/\/generate$/, { timeout: 10000 });
-    console.log("Zalogowano pomyślnie, URL:", page.url());
+    logger.debug("Successfully logged in, URL:", page.url());
   });
 
   test("should show source text input form", async ({ page }) => {
@@ -107,8 +111,8 @@ test.describe("Flashcard Generation", () => {
         .slice(0, 3); // Take first 3 cards
     });
 
-    // Loguj informacje o znalezionych kartach
-    console.log(`Znaleziono ${cardIds.length} kart z ID:`, cardIds);
+    // Log information about found cards
+    logger.debug(`Found ${cardIds.length} cards with IDs:`, cardIds);
 
     // Accept the first 2 cards if available
     if (cardIds.length >= 2) {

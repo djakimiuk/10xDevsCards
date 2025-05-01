@@ -26,7 +26,7 @@ UI aplikacji opiera się na wyraźnym podziale na kluczowe widoki, z których ka
 
   - Ścieżka: `/generate`
   - Główny cel: Umożliwienie użytkownikowi wklejenia tekstu (1000-10000 znaków) i inicjowanie procesu generowania fiszek przez AI i ich rewizję (zaakceptuj, edytuj, odrzuć)
-  - Kluczowe informacje: Pole tekstowe, przycisk generowania, loading indicator (skeleton), komunikaty o błędach (np. nieodpowiednia długość tekstu), przyciski akceptacji, edycji lub odrzucania dla każdej fiszki. 
+  - Kluczowe informacje: Pole tekstowe, przycisk generowania, loading indicator (skeleton), komunikaty o błędach (np. nieodpowiednia długość tekstu), przyciski akceptacji, edycji lub odrzucania dla każdej fiszki.
   - Kluczowe komponenty: Pole tekstowe, przycisk start, wskaźnik ładowania, lista propozycji fiszek do recenzji, przyciski akcji (zapisz wszystkie, zapisz zaakceptowane).
   - UX, dostępność i bezpieczeństwo: Jasne instrukcje, inline błędy, walidacja danych wejściowych.
 
@@ -38,7 +38,6 @@ UI aplikacji opiera się na wyraźnym podziale na kluczowe widoki, z których ka
   - Kluczowe komponenty: Tabela/lista fiszek, modal edycji, przyciski edycji, usuwania.
   - UX, dostępność i bezpieczeństwo: Czytelna prezentacja, potwierdzenia operacji usunięcia, inline komunikaty o błędach i walidacja (limity znaków).
 
-  
 - **Panel użytkownika**
 
   - Ścieżka: `/profile`

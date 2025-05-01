@@ -1,26 +1,35 @@
+import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { registerUser } from "@/lib/auth";
 import { FormField, FormError } from "@/components/ui/form";
 import { registerSchema, type RegisterFormData } from "@/lib/schemas/auth";
 import { useAuthForm } from "@/hooks/useAuthForm";
-import { useEffect } from "react";
+import { registerUser } from "@/lib/auth";
 
 export function RegisterForm() {
+  const [isRegistered, setIsRegistered] = useState(false);
+
+  // Update document title when component mounts
+  useEffect(() => {
+    document.title = "Rejestracja - 10xDevsCards";
+  }, []);
+
+  // Handle navigation after successful registration
+  useEffect(() => {
+    if (isRegistered) {
+      window.location.href = "/auth/login?registration=success";
+    }
+  }, [isRegistered]);
+
   const { form, isLoading, error, handleSubmit } = useAuthForm<RegisterFormData>({
     schema: registerSchema,
     onSubmit: async (data) => {
       await registerUser(data.email, data.password);
-      // Przekieruj do strony logowania z parametrem success
-      window.location.href = "/auth/login?registration=success";
+      setIsRegistered(true);
     },
   });
-
-  useEffect(() => {
-    document.title = "Register - 10xDevsCards";
-  }, []);
 
   return (
     <div className="w-full max-w-md mx-auto space-y-8">

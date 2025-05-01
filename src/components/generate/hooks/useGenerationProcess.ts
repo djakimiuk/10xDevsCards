@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { CandidateViewModel, UpdateAICandidateFlashcardCommand } from "@/types";
 import type { FlashcardCandidate } from "@/lib/services/openrouter.types";
+import { logger } from "@/lib/logger";
 
 // Helper function to handle HTTP errors
 const handleHttpError = async (response: Response): Promise<string> => {
@@ -93,11 +94,11 @@ export function useGenerationProcess() {
         throw new Error(data.error.message || "Failed to generate flashcards");
       }
 
-      const newCandidates = data.flashcards.map(convertToViewModel);
-      setCandidates(newCandidates);
+      logger.info("Generation completed successfully", { count: data.flashcards.length });
+      setCandidates(data.flashcards.map(convertToViewModel));
     } catch (error) {
-      setError("Failed to start generation");
-      console.error("Generation error:", error);
+      logger.error("Generation error:", error);
+      setError("Failed to generate flashcards");
     } finally {
       setIsLoading(false);
     }
@@ -218,12 +219,12 @@ export function useGenerationProcess() {
       );
 
       // Clear source text if all candidates were processed successfully
-      if (!prev.some((c) => c.uiState === "error")) {
+      if (candidates.every((c) => c.uiState !== "error")) {
         setSourceText("");
       }
     } catch (error) {
       setError("Failed to process generation");
-      console.error("Processing error:", error);
+      logger.error("Processing error:", error);
     } finally {
       setIsBulkSaving(false);
     }
@@ -270,12 +271,12 @@ export function useGenerationProcess() {
       );
 
       // Clear source text if all candidates were processed successfully
-      if (!prev.some((c) => c.uiState === "error")) {
+      if (candidates.every((c) => c.uiState !== "error")) {
         setSourceText("");
       }
     } catch (error) {
       setError("Failed to process generation");
-      console.error("Processing error:", error);
+      logger.error("Processing error:", error);
     } finally {
       setIsBulkSaving(false);
     }

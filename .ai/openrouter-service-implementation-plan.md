@@ -69,7 +69,6 @@ Konstruktor klasy `OpenRouterService` inicjuje instancję usługi poprzez:
 1. Klucz API przechowywany jest wyłącznie w zmiennych środowiskowych, np. `.env` (np. `OPENROUTER_API_KEY`).
 2. Rate limiting zapytań do API oraz monitorowanie logów i błędów.
 
-
 ## 7. Plan wdrożenia krok po kroku
 
 1. **Konfiguracja środowiska:**

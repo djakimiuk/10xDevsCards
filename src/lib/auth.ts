@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.client";
+import { logger } from "./logger";
 
 // Temporary placeholder functions for auth operations
 // These will be replaced with actual implementations later
@@ -22,30 +23,23 @@ const friendlyAuthErrors: Record<string, string> = {
  */
 export const loginUser = async (email: string, password: string): Promise<void> => {
   try {
-    console.log("Próba logowania:", { email });
-
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      console.error("Błąd logowania:", error);
-      // Mapowanie błędu na przyjazny komunikat
-      const message = friendlyAuthErrors[error.message] || friendlyAuthErrors.default;
-      throw new Error(message);
+      logger.error("Login failed", { error: error.message });
+      throw error;
     }
 
-    console.log("Logowanie udane:", data);
+    logger.info("User logged in successfully", { email });
 
     // Przekierowanie do /generate po udanym logowaniu
     window.location.href = "/generate";
   } catch (error) {
-    console.error("Złapany błąd:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error(friendlyAuthErrors.default);
+    logger.error("Unexpected error during login", { error });
+    throw error;
   }
 };
 
@@ -58,23 +52,17 @@ export const loginUser = async (email: string, password: string): Promise<void> 
  */
 export const registerUser = async (email: string, password: string): Promise<void> => {
   try {
-    console.log("Próba rejestracji:", { email });
-
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
     });
 
     if (error) {
-      console.error("Błąd rejestracji:", error);
-      const message = friendlyAuthErrors[error.message] || friendlyAuthErrors.default;
-      throw new Error(message);
+      logger.error("Registration failed", { error: error.message });
+      throw error;
     }
 
-    console.log("Rejestracja udana:", data);
+    logger.info("User registered successfully", { email });
 
     // Wyloguj użytkownika, jeśli został automatycznie zalogowany
     await supabase.auth.signOut();
@@ -82,11 +70,8 @@ export const registerUser = async (email: string, password: string): Promise<voi
     // Przekierowanie do strony logowania z parametrem success
     window.location.href = "/auth/login?registration=success";
   } catch (error) {
-    console.error("Złapany błąd:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error(friendlyAuthErrors.default);
+    logger.error("Unexpected error during registration", { error });
+    throw error;
   }
 };
 
@@ -100,13 +85,16 @@ export const logoutUser = async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      throw new Error("Wystąpił błąd podczas wylogowywania. Spróbuj ponownie.");
+      logger.error("Logout failed", { error: error.message });
+      throw error;
     }
+
+    logger.info("User logged out successfully");
 
     // Przekierowanie do strony logowania po wylogowaniu
     window.location.href = "/auth/login";
   } catch (error) {
-    console.error("Błąd wylogowywania:", error);
+    logger.error("Unexpected error during logout", { error });
     throw error;
   }
 };
@@ -118,13 +106,13 @@ export const sendPasswordResetEmail = async (email: string) => {
     });
 
     if (error) {
-      console.error("Błąd resetowania hasła:", error);
+      logger.error("Password reset error:", error);
       throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
     }
 
-    console.log("Link do resetowania hasła wysłany na email");
+    logger.info("Password reset link sent to email", { email });
   } catch (error) {
-    console.error("Złapany błąd:", error);
+    logger.error("Caught error during password reset:", error);
     if (error instanceof Error) {
       throw error;
     }

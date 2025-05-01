@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import LoginPage from "./pages/LoginPage";
 import AuthPage from "./pages/AuthPage";
+import { logger } from "../src/lib/logger";
 
 test.describe("Authentication", () => {
   test("should show login form", async ({ page }) => {
@@ -35,16 +36,17 @@ test.describe("Authentication", () => {
     await loginPage.waitForPageLoad();
 
     // Pobierz dane z zmiennych środowiskowych z .env.test
-    const testEmail = process.env.DEFAULT_USER_EMAIL;
-    const testPassword = process.env.DEFAULT_USER_PASSWORD;
+    const email = process.env.DEFAULT_USER_EMAIL;
+    const password = process.env.DEFAULT_USER_PASSWORD;
+    if (!email || !password) {
+      throw new Error("Default user credentials not set in environment variables");
+    }
 
-    // Sprawdź, czy zmienne są zdefiniowane
-    console.log("Dane do logowania:", { email: testEmail, password: testPassword ? "***" : undefined });
-    expect(testEmail).toBeDefined();
-    expect(testPassword).toBeDefined();
+    // Log debug information
+    logger.debug("Login credentials:", { email: email, password: password ? "***" : undefined });
 
     // Zaloguj się używając danych testowych
-    await loginPage.login(testEmail!, testPassword!);
+    await loginPage.login(email, password);
 
     // Poczekaj na przekierowanie do strony /generate
     await page.waitForURL(/\/generate$/, { timeout: 10000 });

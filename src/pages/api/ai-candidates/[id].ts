@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { APIRoute } from "astro";
 import type { UpdateAICandidateFlashcardCommand } from "../../../types";
+import { logger } from "../../../lib/logger";
 
 // Schema for request body validation
 const updateSchema = z.object({
@@ -12,6 +13,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ params, locals }) => {
   try {
+    logger.info("Fetching AI candidate", { id: params.id });
     // Validate ID parameter
     const { id } = params;
     if (!id || !/^[0-9a-fA-F-]{36}$/.test(id)) {
@@ -39,7 +41,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       .single();
 
     if (error) {
-      console.error("Database error:", error);
+      logger.error("Database error:", { error });
       if (error.code === "PGRST116") {
         return new Response(JSON.stringify({ error: "AI candidate flashcard not found" }), {
           status: 404,
@@ -57,7 +59,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Error in GET /api/ai-candidates/[id]", { error });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -67,6 +69,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
   try {
+    logger.info("Updating AI candidate", { id: params.id });
     // Validate ID parameter
     const { id } = params;
     if (!id || !/^[0-9a-fA-F-]{36}$/.test(id)) {
@@ -118,7 +121,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       .single();
 
     if (error) {
-      console.error("Database error:", error);
+      logger.error("Database error:", { error });
       if (error.code === "PGRST116") {
         return new Response(JSON.stringify({ error: "Flashcard not found" }), {
           status: 404,
@@ -136,7 +139,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Error updating AI candidate", { error, id: params.id });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -146,6 +149,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
 export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
+    logger.info("Deleting AI candidate", { id: params.id });
     const { id } = params;
     if (!id || !/^[0-9a-fA-F-]{36}$/.test(id)) {
       return new Response(JSON.stringify({ error: "Invalid flashcard ID format - must be UUID" }), {
@@ -159,7 +163,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
     const { error } = await supabase.from("ai_candidate_flashcards").delete().eq("id", id);
 
     if (error) {
-      console.error("Database error:", error);
+      logger.error("Database error:", { error });
       if (error.code === "PGRST116") {
         return new Response(JSON.stringify({ error: "Flashcard not found" }), {
           status: 404,
@@ -176,7 +180,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       status: 204,
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Error deleting AI candidate", { error, id: params.id });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

@@ -1,6 +1,6 @@
 import { Logger } from "../logger";
 import { OpenRouterService } from "./openrouter.service";
-import type { FlashcardCandidate, GenerateFlashcardsResponse } from "./openrouter.types";
+import type { FlashcardCandidate } from "./openrouter.types";
 import { GenerateFlashcardsResponseSchema } from "./openrouter.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../db/database.types";
@@ -142,14 +142,12 @@ Keep each flashcard focused on a single concept and ensure the question-answer p
         });
 
         // Map stored candidates back to FlashcardCandidate type with additional database fields
-        const candidatesWithIds = validFlashcards.map((card, index) => ({
+        return validFlashcards.map((card, index) => ({
           ...card,
           id: storedCandidates[index].id,
           requestId: storedCandidates[index].request_id,
           createdAt: storedCandidates[index].created_at,
         }));
-
-        return candidatesWithIds;
       } catch (error) {
         this._logger.error("Failed to generate or store flashcards", { requestId }, error as Error);
         if (requestId) {

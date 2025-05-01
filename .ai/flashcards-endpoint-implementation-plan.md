@@ -104,5 +104,5 @@ Endpoint służy do tworzenia nowej fiszki w systemie. Użytkownik przesyła ż�
    - W przypadku powodzenia, zwrócenie nowego rekordu fiszki w formacie JSON oraz statusu 201.
 7. **Obsługa wyjątków i logowanie błędów**:
    - Implementacja bloków try-catch oraz logowanie błędów, zwracając status 500 w przypadku krytycznych awarii.
-9. **Dokumentacja**:
+8. **Dokumentacja**:
    - Aktualizacja dokumentacji API, w tym specyfikacji OpenAPI, dla ułatwienia dalszego rozwoju i wsparcia technicznego.

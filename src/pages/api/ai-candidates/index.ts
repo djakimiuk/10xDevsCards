@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { APIRoute } from "astro";
 import type { GetAICandidatesResponseDTO } from "../../../types";
+import { logger } from "../../../lib/logger";
 
 // Schema for query parameters
 const querySchema = z.object({
@@ -11,6 +12,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
+    logger.info("Creating AI candidate");
     // Parse and validate query parameters
     const searchParams = Object.fromEntries(url.searchParams);
     const queryResult = querySchema.safeParse(searchParams);
@@ -68,7 +70,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Error creating AI candidate", { error });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

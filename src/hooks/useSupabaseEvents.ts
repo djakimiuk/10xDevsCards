@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase.client";
-
-type EventHandler = (payload: any) => void;
+import type { EventHandler } from "@/types";
 
 export function useSupabaseEvents(eventName: string, handler: EventHandler) {
   useEffect(() => {
@@ -10,24 +9,13 @@ export function useSupabaseEvents(eventName: string, handler: EventHandler) {
 
     channel
       .on("broadcast", { event: eventName }, ({ payload }) => {
-        console.log("Otrzymano event:", eventName, payload);
         handler(payload);
       })
-      .subscribe((status) => {
-        console.log("Status subskrypcji:", status);
-      });
+      .subscribe();
 
     // Cleanup przy odmontowaniu
     return () => {
       channel.unsubscribe();
     };
   }, [eventName, handler]);
-}
-
-// Replace console.log with proper error handling or logging service
-function handleError(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "An unexpected error occurred";
 }

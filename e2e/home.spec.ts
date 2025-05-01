@@ -17,10 +17,9 @@ test.describe("Login page tests", () => {
     await expect(page).toHaveURL(/.*localhost:3000\/auth\/login/);
   });
 
-  test("should have the correct page title", async ({ page }) => {
+  test("should have the correct page title", async () => {
     // Verify the page title matches the expected format
-    const title = await page.title();
-    expect(title).toContain("Login");
+    await loginPage.expectPageTitle("Login");
   });
 
   test("should have login form elements", async () => {
@@ -30,7 +29,7 @@ test.describe("Login page tests", () => {
     await expect(loginPage.submitButton).toBeVisible();
   });
 
-  test("should have navigation links", async ({ page }) => {
+  test("should have navigation links", async () => {
     // Check that register and forgot password links exist
     await expect(loginPage.registerLink).toBeVisible();
     await expect(loginPage.forgotPasswordLink).toBeVisible();

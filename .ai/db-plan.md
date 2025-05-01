@@ -1,4 +1,4 @@
- ```markdown
+````markdown
 # Schemat Bazy Danych PostgreSQL dla AI Flashcard Generator (MVP)
 
 Dokument ten definiuje strukturę bazy danych PostgreSQL dla wersji MVP aplikacji AI Flashcard Generator, hostowanej na Supabase.
@@ -9,40 +9,40 @@ Dokument ten definiuje strukturę bazy danych PostgreSQL dla wersji MVP aplikacj
 
 Przechowuje fiszki użytkowników.
 
-| Nazwa Kolumny | Typ Danych   | Ograniczenia                                       | Opis                                      |
-| :------------ | :----------- | :------------------------------------------------- | :---------------------------------------- |
-| `id`          | `uuid`       | `PRIMARY KEY`, `DEFAULT gen_random_uuid()`         | Unikalny identyfikator fiszki             |
-| `user_id`     | `uuid`       | `NOT NULL`, `REFERENCES auth.users(id) ON DELETE CASCADE` | Identyfikator użytkownika (z Supabase Auth) |
-| `front`       | `text`       | `NOT NULL`, `CHECK (char_length(front) <= 200)`    | Treść "przodu" fiszki (Markdown)        |
-| `back`        | `text`       | `NOT NULL`, `CHECK (char_length(back) <= 500)`     | Treść "tyłu" fiszki (Markdown)          |
-| `source`      | `text`       | `NOT NULL`, `CHECK (source IN ('AI', 'MANUAL'))` | Źródło pochodzenia fiszki               |
-| `created_at`  | `timestamptz`| `NOT NULL`, `DEFAULT now()`                        | Znacznik czasu utworzenia                 |
-| `updated_at`  | `timestamptz`| `NOT NULL`, `DEFAULT now()`                        | Znacznik czasu ostatniej modyfikacji       |
+| Nazwa Kolumny | Typ Danych    | Ograniczenia                                              | Opis                                        |
+| :------------ | :------------ | :-------------------------------------------------------- | :------------------------------------------ |
+| `id`          | `uuid`        | `PRIMARY KEY`, `DEFAULT gen_random_uuid()`                | Unikalny identyfikator fiszki               |
+| `user_id`     | `uuid`        | `NOT NULL`, `REFERENCES auth.users(id) ON DELETE CASCADE` | Identyfikator użytkownika (z Supabase Auth) |
+| `front`       | `text`        | `NOT NULL`, `CHECK (char_length(front) <= 200)`           | Treść "przodu" fiszki (Markdown)            |
+| `back`        | `text`        | `NOT NULL`, `CHECK (char_length(back) <= 500)`            | Treść "tyłu" fiszki (Markdown)              |
+| `source`      | `text`        | `NOT NULL`, `CHECK (source IN ('AI', 'MANUAL'))`          | Źródło pochodzenia fiszki                   |
+| `created_at`  | `timestamptz` | `NOT NULL`, `DEFAULT now()`                               | Znacznik czasu utworzenia                   |
+| `updated_at`  | `timestamptz` | `NOT NULL`, `DEFAULT now()`                               | Znacznik czasu ostatniej modyfikacji        |
 
 ### 1.2. `generation_requests`
 
 Śledzi żądania generowania fiszek przez AI.
 
-| Nazwa Kolumny | Typ Danych   | Ograniczenia                                                | Opis                                      |
-| :------------ | :----------- | :---------------------------------------------------------- | :---------------------------------------- |
-| `id`          | `uuid`       | `PRIMARY KEY`, `DEFAULT gen_random_uuid()`                  | Unikalny identyfikator żądania generowania |
-| `user_id`     | `uuid`       | `NOT NULL`, `REFERENCES auth.users(id) ON DELETE CASCADE`   | Identyfikator użytkownika (z Supabase Auth) |
-| `source_text` | `text`       | `NOT NULL`, `CHECK (char_length(source_text) BETWEEN 1000 AND 10000)` | Tekst źródłowy do generowania           |
-| `status`      | `text`       | `NOT NULL`, `CHECK (status IN ('processing', 'completed', 'failed'))` | Status przetwarzania żądania           |
-| `created_at`  | `timestamptz`| `NOT NULL`, `DEFAULT now()`                                 | Znacznik czasu utworzenia                 |
-| `updated_at`  | `timestamptz`| `NOT NULL`, `DEFAULT now()`                                 | Znacznik czasu ostatniej modyfikacji       |
+| Nazwa Kolumny | Typ Danych    | Ograniczenia                                                          | Opis                                        |
+| :------------ | :------------ | :-------------------------------------------------------------------- | :------------------------------------------ |
+| `id`          | `uuid`        | `PRIMARY KEY`, `DEFAULT gen_random_uuid()`                            | Unikalny identyfikator żądania generowania  |
+| `user_id`     | `uuid`        | `NOT NULL`, `REFERENCES auth.users(id) ON DELETE CASCADE`             | Identyfikator użytkownika (z Supabase Auth) |
+| `source_text` | `text`        | `NOT NULL`, `CHECK (char_length(source_text) BETWEEN 1000 AND 10000)` | Tekst źródłowy do generowania               |
+| `status`      | `text`        | `NOT NULL`, `CHECK (status IN ('processing', 'completed', 'failed'))` | Status przetwarzania żądania                |
+| `created_at`  | `timestamptz` | `NOT NULL`, `DEFAULT now()`                                           | Znacznik czasu utworzenia                   |
+| `updated_at`  | `timestamptz` | `NOT NULL`, `DEFAULT now()`                                           | Znacznik czasu ostatniej modyfikacji        |
 
 ### 1.3. `ai_candidate_flashcards`
 
 Przechowuje tymczasowo kandydatów na fiszki wygenerowanych przez AI przed recenzją.
 
-| Nazwa Kolumny | Typ Danych   | Ograniczenia                                                | Opis                                        |
-| :------------ | :----------- | :---------------------------------------------------------- | :------------------------------------------ |
-| `id`          | `uuid`       | `PRIMARY KEY`, `DEFAULT gen_random_uuid()`                  | Unikalny identyfikator kandydata            |
-| `request_id`  | `uuid`       | `NOT NULL`, `REFERENCES generation_requests(id) ON DELETE CASCADE` | Identyfikator powiązanego żądania generowania |
-| `front`       | `text`       | `NOT NULL`, `CHECK (char_length(front) <= 200)`             | Treść "przodu" kandydata (Markdown)         |
-| `back`        | `text`       | `NOT NULL`, `CHECK (char_length(back) <= 500)`              | Treść "tyłu" kandydata (Markdown)           |
-| `created_at`  | `timestamptz`| `NOT NULL`, `DEFAULT now()`                                 | Znacznik czasu utworzenia                   |
+| Nazwa Kolumny | Typ Danych    | Ograniczenia                                                       | Opis                                          |
+| :------------ | :------------ | :----------------------------------------------------------------- | :-------------------------------------------- |
+| `id`          | `uuid`        | `PRIMARY KEY`, `DEFAULT gen_random_uuid()`                         | Unikalny identyfikator kandydata              |
+| `request_id`  | `uuid`        | `NOT NULL`, `REFERENCES generation_requests(id) ON DELETE CASCADE` | Identyfikator powiązanego żądania generowania |
+| `front`       | `text`        | `NOT NULL`, `CHECK (char_length(front) <= 200)`                    | Treść "przodu" kandydata (Markdown)           |
+| `back`        | `text`        | `NOT NULL`, `CHECK (char_length(back) <= 500)`                     | Treść "tyłu" kandydata (Markdown)             |
+| `created_at`  | `timestamptz` | `NOT NULL`, `DEFAULT now()`                                        | Znacznik czasu utworzenia                     |
 
 ## 2. Relacje między Tabelami
 
@@ -69,6 +69,7 @@ ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE generation_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_candidate_flashcards ENABLE ROW LEVEL SECURITY;
 ```
+````
 
 ### 4.2. Polityki dla `flashcards`
 
@@ -170,6 +171,7 @@ USING (auth.role() = 'service_role');
 ## 5. Dodatkowe Uwagi
 
 - **`updated_at` Trigger**: Kolumny `updated_at` w tabelach `flashcards` i `generation_requests` wymagają funkcji triggera do automatycznej aktualizacji przy każdej zmianie rekordu. Można użyć standardowej funkcji dostępnej w wielu przykładach Supabase/PostgreSQL.
+
   ```sql
   -- Przykładowa funkcja triggera
   CREATE OR REPLACE FUNCTION handle_updated_at()
@@ -189,8 +191,11 @@ USING (auth.role() = 'service_role');
   BEFORE UPDATE ON generation_requests
   FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
   ```
+
 - **Typy Enum**: Rozważono użycie typów `ENUM` dla kolumn `source` i `status` dla lepszej integralności danych, jednak dla prostoty MVP zdecydowano się na `TEXT` z ograniczeniami `CHECK`.
 - **Autentykacja**: Cały system autentykacji opiera się na wbudowanym rozwiązaniu Supabase Auth. Tabela `auth.users` jest centralnym punktem odniesienia dla identyfikatorów użytkowników.
 - **Role**: Polityki RLS uwzględniają dostęp dla standardowych użytkowników (`auth.uid()`) oraz dla roli `service_role`, która będzie używana przez logikę backendową (np. Supabase Edge Functions) do operacji wymagających szerszych uprawnień (np. tworzenie kandydatów AI, aktualizacja statusu żądania).
+
+```
 
 ```
