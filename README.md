@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An AI-powered web application designed to help users, especially programming learners, efficiently create educational flashcards from text content.
+An AI-powered web application designed to help users, especially programming learners, efficiently create educational flashcards from text content. Test PR.
 
 ## Table of Contents
 
