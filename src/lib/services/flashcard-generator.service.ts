@@ -1,13 +1,13 @@
-import { Logger } from "../logger";
+import { logger } from "../logger";
 import { OpenRouterService } from "./openrouter.service";
 import type { FlashcardCandidate } from "./openrouter.types";
 import { GenerateFlashcardsResponseSchema } from "./openrouter.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../db/database.types";
-import { DEFAULT_USER_ID } from "../../db/supabase.client";
+import { supabaseAdmin } from "../../db/supabase.service";
 
 export class FlashcardGeneratorService {
-  private readonly _logger: Logger;
+  private readonly _logPrefix: string = "FlashcardGenerator";
   private readonly _systemPrompt = `You are an expert educational flashcard creator. Your task is to analyze technical documentation or educational text and create effective flashcards for learning.
 
 For each important concept, definition, or fact, create a flashcard that follows these principles:
@@ -49,23 +49,40 @@ Keep each flashcard focused on a single concept and ensure the question-answer p
   constructor(
     private readonly openRouter: OpenRouterService,
     private readonly supabase: SupabaseClient<Database>
-  ) {
-    this._logger = new Logger("FlashcardGenerator");
-  }
+  ) {}
 
   async generateFlashcards(text: string): Promise<FlashcardCandidate[]> {
-    this._logger.info("Generating flashcards from text", {
+    logger.info(`${this._logPrefix}: Generating flashcards from text`, {
       textLength: text.length,
     });
 
     let requestId: string | null = null;
 
     try {
+      // Get current user ID
+      const {
+        data: { user },
+        error: userError,
+      } = await this.supabase.auth.getUser();
+
+      if (userError) {
+        logger.error(`${this._logPrefix}: Failed to get current user`, { error: userError });
+        throw new Error("Authentication error: " + userError.message);
+      }
+
+      if (!user) {
+        logger.error(`${this._logPrefix}: No authenticated user found`);
+        throw new Error("Authentication error: No user found");
+      }
+
+      const userId = user.id;
+      logger.info(`${this._logPrefix}: Using user ID for flashcard generation`, { userId });
+
       // Create generation request
       const { data: request, error: requestError } = await this.supabase
         .from("generation_requests")
         .insert({
-          user_id: DEFAULT_USER_ID,
+          user_id: userId,
           source_text: text,
           status: "processing",
         })
@@ -73,49 +90,58 @@ Keep each flashcard focused on a single concept and ensure the question-answer p
         .single();
 
       if (requestError) {
-        this._logger.error("Failed to create generation request", { error: requestError });
-        throw new Error("Failed to create generation request");
+        logger.error(`${this._logPrefix}: Failed to create generation request`, { error: requestError });
+        throw new Error("Failed to create generation request: " + requestError.message);
       }
 
       requestId = request.id;
+      logger.info(`${this._logPrefix}: Created generation request`, { requestId });
 
       // Override system message for flashcard generation
       const originalSystemMessage = this.openRouter.systemMessage;
       this.openRouter.systemMessage = this._systemPrompt;
 
       try {
+        logger.info(`${this._logPrefix}: Sending request to OpenRouter`, { textLength: text.length });
         const response = await this.openRouter.sendMessage(
           `Please analyze this text and generate flashcard candidates:\n\n${text}`
         );
 
         // Validate response format
+        logger.debug(`${this._logPrefix}: Validating OpenRouter response`);
         const parsedResponse = GenerateFlashcardsResponseSchema.parse(response);
 
         if (!parsedResponse.flashcards || parsedResponse.flashcards.length === 0) {
-          this._logger.warn("No flashcards generated", { response });
+          logger.warn(`${this._logPrefix}: No flashcards generated`, { response });
           await this.supabase.from("generation_requests").update({ status: "failed" }).eq("id", requestId);
           return [];
         }
+
+        logger.info(`${this._logPrefix}: Received flashcards from OpenRouter`, {
+          count: parsedResponse.flashcards.length,
+        });
 
         // Validate each flashcard
         const validFlashcards = parsedResponse.flashcards.filter((card) => {
           const isValid = card.front?.trim() && card.back?.trim();
           if (!isValid) {
-            this._logger.warn("Invalid flashcard found", { card });
+            logger.warn(`${this._logPrefix}: Invalid flashcard found`, { card });
           }
           return isValid;
         });
 
         if (validFlashcards.length === 0) {
-          this._logger.warn("No valid flashcards after filtering", {
+          logger.warn(`${this._logPrefix}: No valid flashcards after filtering`, {
             total: parsedResponse.flashcards.length,
           });
           await this.supabase.from("generation_requests").update({ status: "failed" }).eq("id", requestId);
           return [];
         }
 
-        // Store candidates in the database
-        const { data: storedCandidates, error: candidatesError } = await this.supabase
+        logger.info(`${this._logPrefix}: Storing valid flashcards`, { count: validFlashcards.length });
+
+        // Store candidates in the database using admin client to bypass RLS
+        const { data: storedCandidates, error: candidatesError } = await supabaseAdmin
           .from("ai_candidate_flashcards")
           .insert(
             validFlashcards.map((card) => ({
@@ -127,15 +153,15 @@ Keep each flashcard focused on a single concept and ensure the question-answer p
           .select("id, request_id, front, back, created_at");
 
         if (candidatesError) {
-          this._logger.error("Failed to store flashcard candidates", { error: candidatesError });
+          logger.error(`${this._logPrefix}: Failed to store flashcard candidates`, { error: candidatesError });
           await this.supabase.from("generation_requests").update({ status: "failed" }).eq("id", requestId);
-          throw new Error("Failed to store flashcard candidates");
+          throw new Error("Failed to store flashcard candidates: " + candidatesError.message);
         }
 
         // Update request status
         await this.supabase.from("generation_requests").update({ status: "completed" }).eq("id", requestId);
 
-        this._logger.info("Successfully generated flashcards", {
+        logger.info(`${this._logPrefix}: Successfully generated flashcards`, {
           total: parsedResponse.flashcards.length,
           valid: validFlashcards.length,
           requestId,
@@ -149,7 +175,8 @@ Keep each flashcard focused on a single concept and ensure the question-answer p
           createdAt: storedCandidates[index].created_at,
         }));
       } catch (error) {
-        this._logger.error("Failed to generate or store flashcards", { requestId }, error as Error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        logger.error(`${this._logPrefix}: Failed to generate or store flashcards`, { requestId, errorMessage });
         if (requestId) {
           await this.supabase.from("generation_requests").update({ status: "failed" }).eq("id", requestId);
         }
@@ -159,7 +186,12 @@ Keep each flashcard focused on a single concept and ensure the question-answer p
         this.openRouter.systemMessage = originalSystemMessage;
       }
     } catch (error) {
-      this._logger.error("Flashcard generation failed", { textLength: text.length, requestId }, error as Error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      logger.error(`${this._logPrefix}: Flashcard generation failed`, {
+        textLength: text.length,
+        requestId,
+        errorMessage,
+      });
       throw error;
     }
   }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { FlashcardGeneratorService } from "../../../lib/services/flashcard-generator.service";
 import { OpenRouterService } from "../../../lib/services/openrouter.service";
 import { logger } from "../../../lib/logger";
+import { createCookieAdapter } from "../../../lib/cookies";
 
 // Validation schema for request body
 const generateSchema = z.object({
@@ -14,14 +15,16 @@ const generateSchema = z.object({
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, cookies: astroCookies }) => {
   try {
     logger.info("Generating flashcards");
+
     // Parse and validate request body
     let body;
     try {
       body = await request.json();
-    } catch {
+    } catch (error) {
+      logger.error("Failed to parse request body", { error });
       return new Response(
         JSON.stringify({
           error: {
@@ -38,6 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const validationResult = generateSchema.safeParse(body);
 
     if (!validationResult.success) {
+      logger.error("Validation failed", { errors: validationResult.error.errors });
       return new Response(
         JSON.stringify({
           error: {
@@ -52,23 +56,72 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
+    // Ensure we have a proper Supabase client
+    if (!locals.supabase) {
+      // Convert AstroCookies to cookie adapter format
+      const cookies = createCookieAdapter(astroCookies);
+
+      logger.error("No Supabase instance in locals - this is likely a middleware issue");
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: "Authentication error. Please log in again.",
+          },
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Initialize services
-    const openRouter = new OpenRouterService();
-    const flashcardGenerator = new FlashcardGeneratorService(openRouter, locals.supabase);
+    try {
+      const openRouter = new OpenRouterService();
+      const flashcardGenerator = new FlashcardGeneratorService(openRouter, locals.supabase);
 
-    // Generate flashcards
-    const flashcards = await flashcardGenerator.generateFlashcards(validationResult.data.text);
+      // Generate flashcards
+      const flashcards = await flashcardGenerator.generateFlashcards(validationResult.data.text);
 
-    return new Response(JSON.stringify({ flashcards }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+      return new Response(JSON.stringify({ flashcards }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      // Log detailed error information
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorName = error instanceof Error ? error.name : "UnknownError";
+      const errorStack = error instanceof Error ? error.stack : "";
+
+      logger.error("Error generating flashcards", {
+        errorMessage,
+        errorName,
+        errorStack,
+        error,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: errorMessage,
+            name: errorName,
+          },
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
   } catch (error) {
-    logger.error("Error generating flashcards", { error });
+    // Catch any unexpected errors in the main try block
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+    logger.error("Unexpected error in flashcard generation endpoint", { error, errorMessage });
+
     return new Response(
       JSON.stringify({
         error: {
-          message: error instanceof Error ? error.message : "An unexpected error occurred",
+          message: errorMessage,
         },
       }),
       {

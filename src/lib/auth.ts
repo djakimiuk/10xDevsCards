@@ -26,7 +26,7 @@ const friendlyAuthErrors: Record<string, string> = {
  */
 export const loginUser = async (email: string, password: string): Promise<void> => {
   try {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -36,9 +36,14 @@ export const loginUser = async (email: string, password: string): Promise<void> 
       throw new Error(error.message);
     }
 
+    if (!data.session) {
+      logger.error("No session after login");
+      throw new Error("Nie udało się utworzyć sesji");
+    }
+
     logger.info("User logged in successfully", { email });
 
-    // Przekierowanie do /generate po udanym logowaniu
+    // Bezpośrednie przekierowanie do /generate po udanym logowaniu
     window.location.href = "/generate";
   } catch (error) {
     logger.error("Unexpected error during login", { error });
@@ -103,8 +108,8 @@ export const logoutUser = async (): Promise<void> => {
 
     logger.info("User logged out successfully");
 
-    // Przekierowanie do strony logowania po wylogowaniu
-    window.location.href = "/auth/login";
+    // Odśwież stronę zamiast przekierowania, aby middleware mógł przetworzyć wylogowanie
+    window.location.reload();
   } catch (error) {
     logger.error("Unexpected error during logout", { error });
     if (error instanceof Error) {

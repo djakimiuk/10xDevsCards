@@ -15,14 +15,19 @@ export const ModelParamsSchema = z.object({
   presence_penalty: z.number().min(-2).max(2).optional(),
 });
 
-export const ResponseFormatSchema = z.object({
-  type: z.literal("json_schema"),
-  json_schema: z.object({
-    name: z.string(),
-    strict: z.boolean(),
-    schema: z.record(z.string()),
+export const ResponseFormatSchema = z.union([
+  z.object({
+    type: z.literal("json_schema"),
+    json_schema: z.object({
+      name: z.string(),
+      strict: z.boolean(),
+      schema: z.record(z.string()),
+    }),
   }),
-});
+  z.object({
+    type: z.literal("json_object"),
+  }),
+]);
 
 // Flashcard generation schemas
 export const FlashcardCandidateSchema = z.object({

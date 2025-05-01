@@ -2,7 +2,7 @@ import { LogLevel } from "./types";
 
 class Logger {
   private static instance: Logger;
-  private logLevel: LogLevel = "info";
+  private logLevel: LogLevel = LogLevel.INFO;
 
   // Private constructor to enforce singleton pattern
   private constructor() {
@@ -21,43 +21,43 @@ class Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels: LogLevel[] = ["error", "warn", "info", "debug"];
+    const levels: LogLevel[] = [LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG];
     return levels.indexOf(level) <= levels.indexOf(this.logLevel);
   }
 
   private formatMessage(level: LogLevel, message: string, meta?: unknown): string {
     const timestamp = new Date().toISOString();
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : "";
-    return `[${timestamp}] ${level.toUpperCase()}: ${message}${metaStr}`;
+    return `[${timestamp}] ${level}: ${message}${metaStr}`;
   }
 
   error(message: string, meta?: unknown) {
-    if (this.shouldLog("error")) {
-      const formattedMessage = this.formatMessage("error", message, meta);
+    if (this.shouldLog(LogLevel.ERROR)) {
+      const formattedMessage = this.formatMessage(LogLevel.ERROR, message, meta);
       // Use console.error for errors as they need to be visible in production
       console.error(formattedMessage);
     }
   }
 
   warn(message: string, meta?: unknown) {
-    if (this.shouldLog("warn")) {
-      const formattedMessage = this.formatMessage("warn", message, meta);
+    if (this.shouldLog(LogLevel.WARN)) {
+      const formattedMessage = this.formatMessage(LogLevel.WARN, message, meta);
       // Use console.warn for warnings as they might be important in production
       console.warn(formattedMessage);
     }
   }
 
   info(message: string, meta?: unknown) {
-    if (this.shouldLog("info")) {
-      const formattedMessage = this.formatMessage("info", message, meta);
+    if (this.shouldLog(LogLevel.INFO)) {
+      const formattedMessage = this.formatMessage(LogLevel.INFO, message, meta);
       // Use console.info for informational messages
       console.info(formattedMessage);
     }
   }
 
   debug(message: string, meta?: unknown) {
-    if (this.shouldLog("debug")) {
-      const formattedMessage = this.formatMessage("debug", message, meta);
+    if (this.shouldLog(LogLevel.DEBUG)) {
+      const formattedMessage = this.formatMessage(LogLevel.DEBUG, message, meta);
       // Use console.debug for debug messages that should be hidden in production
       console.debug(formattedMessage);
     }

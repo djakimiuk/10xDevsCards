@@ -1,12 +1,21 @@
 import { defineMiddleware } from "astro:middleware";
 import { createSupabaseServerInstance } from "../lib/supabase.server";
-import { getSession } from "../lib/session";
+import { createCookieAdapter } from "../lib/cookies";
 
 // Ścieżki publiczne, dostępne bez logowania
-const PUBLIC_PATHS = ["/auth/login", "/auth/register", "/auth/forgot-password"];
+const PUBLIC_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/callback",
+];
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { cookies, request, redirect, url, locals } = context;
+  const { cookies: astroCookies, request, redirect, url, locals } = context;
+
+  // Użycie adaptera cookies
+  const cookies = createCookieAdapter(astroCookies);
 
   // Inicjalizacja klienta Supabase dla SSR
   const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
@@ -14,37 +23,56 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Zapisanie instancji supabase w locals dla późniejszego użycia
   locals.supabase = supabase;
 
-  // Pobranie i weryfikacja użytkownika
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  try {
+    // Pobranie sesji
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-  // Jeśli użytkownik jest zalogowany i zweryfikowany
-  if (user && !error) {
-    // Zapisanie danych użytkownika w locals
-    locals.user = {
-      id: user.id,
-      email: user.email || "",
-    };
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      // Wyczyść ciasteczka sesji w przypadku błędu
+      const sessionCookies = ["sb-access-token", "sb-refresh-token"];
+      sessionCookies.forEach((name) => {
+        cookies.delete(name, { path: "/" });
+      });
 
-    // Jeśli próbuje dostać się do strony logowania, przekieruj do /generate
-    if (PUBLIC_PATHS.includes(url.pathname)) {
-      return redirect("/generate");
-    }
-  }
-  // Jeśli użytkownik nie jest zalogowany lub wystąpił błąd weryfikacji
-  else {
-    // Jeśli próbuje dostać się do chronionej strony, przekieruj do logowania
-    if (!PUBLIC_PATHS.includes(url.pathname)) {
-      const session = await getSession(context.request);
-      if (!session) {
+      if (!PUBLIC_PATHS.includes(url.pathname)) {
         return redirect("/auth/login");
       }
+      return next();
+    }
+
+    // Jeśli użytkownik jest zalogowany i ma aktywną sesję
+    if (session?.user) {
+      // Zapisanie danych użytkownika w locals
+      locals.user = {
+        id: session.user.id,
+        email: session.user.email || "",
+      };
+
+      // Jeśli próbuje dostać się do strony logowania, przekieruj do /generate
+      if (PUBLIC_PATHS.includes(url.pathname)) {
+        return redirect("/generate");
+      }
+    }
+    // Jeśli użytkownik nie jest zalogowany
+    else {
+      // Jeśli próbuje dostać się do chronionej strony, przekieruj do logowania
+      if (!PUBLIC_PATHS.includes(url.pathname)) {
+        return redirect("/auth/login");
+      }
+    }
+
+    // Kontynuuj przetwarzanie żądania
+    return next();
+  } catch (error) {
+    console.error("Middleware error:", error);
+    // W przypadku nieoczekiwanego błędu, przekieruj do logowania
+    if (!PUBLIC_PATHS.includes(url.pathname)) {
       return redirect("/auth/login");
     }
+    return next();
   }
-
-  // Kontynuuj przetwarzanie żądania
-  return next();
 });

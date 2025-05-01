@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { DEFAULT_USER_ID } from "../../../../db/supabase.client";
+import { supabaseAdmin } from "../../../../db/supabase.service";
 import { logger } from "../../../../lib/logger";
 
 export const prerender = false;
@@ -18,7 +19,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
 
     logger.info("Accepting AI candidate", { id });
 
-    // Get the candidate flashcard
+    // Get the candidate flashcard - use regular client for reading
     const { data: candidate, error: fetchError } = await supabase
       .from("ai_candidate_flashcards")
       .select(
@@ -34,6 +35,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
       .single();
 
     if (fetchError || !candidate) {
+      logger.error("Error fetching candidate:", { error: fetchError });
       return new Response(
         JSON.stringify({
           error: "AI candidate flashcard not found",
@@ -45,14 +47,20 @@ export const POST: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // Insert into flashcards table
-    const { data: newFlashcard, error: insertError } = await supabase
+    // Get the current user ID
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const userId = user?.id || DEFAULT_USER_ID;
+
+    // Insert into flashcards table using admin client
+    const { data: newFlashcard, error: insertError } = await supabaseAdmin
       .from("flashcards")
       .insert({
         front: candidate.front,
         back: candidate.back,
         source: "AI",
-        user_id: DEFAULT_USER_ID,
+        user_id: userId,
       })
       .select(
         `
@@ -80,8 +88,8 @@ export const POST: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // Delete from ai_candidate_flashcards
-    const { error: deleteError } = await supabase.from("ai_candidate_flashcards").delete().eq("id", id);
+    // Delete from ai_candidate_flashcards using admin client
+    const { error: deleteError } = await supabaseAdmin.from("ai_candidate_flashcards").delete().eq("id", id);
 
     if (deleteError) {
       logger.error("Error deleting candidate:", { error: deleteError });

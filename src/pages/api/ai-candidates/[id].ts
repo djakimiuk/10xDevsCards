@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { APIRoute } from "astro";
 import type { UpdateAICandidateFlashcardCommand } from "../../../types";
 import { logger } from "../../../lib/logger";
+import { supabaseAdmin } from "../../../db/supabase.service";
 
 // Schema for request body validation
 const updateSchema = z.object({
@@ -98,11 +99,24 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
     const { front, back } = validationResult.data;
 
-    // Get supabase client from context
+    // First verify the user has access to this card using the standard client
     const supabase = locals.supabase;
+    const { data: existingCard, error: checkError } = await supabase
+      .from("ai_candidate_flashcards")
+      .select("id")
+      .eq("id", id)
+      .single();
 
-    // Update flashcard
-    const { data: updatedFlashcard, error } = await supabase
+    if (checkError || !existingCard) {
+      logger.error("Error checking access to AI candidate", { error: checkError });
+      return new Response(JSON.stringify({ error: "Flashcard not found or access denied" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // If access check passes, use admin client to bypass RLS for update
+    const { data: updatedFlashcard, error: updateError } = await supabaseAdmin
       .from("ai_candidate_flashcards")
       .update({
         front,
@@ -120,15 +134,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       )
       .single();
 
-    if (error) {
-      logger.error("Database error:", { error });
-      if (error.code === "PGRST116") {
-        return new Response(JSON.stringify({ error: "Flashcard not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
+    if (updateError) {
+      logger.error("Database error on update:", { error: updateError });
+      return new Response(JSON.stringify({ error: "Failed to update flashcard" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
@@ -158,19 +166,28 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       });
     }
 
+    // First verify the user has access to this card
     const supabase = locals.supabase;
+    const { data: existingCard, error: checkError } = await supabase
+      .from("ai_candidate_flashcards")
+      .select("id")
+      .eq("id", id)
+      .single();
 
-    const { error } = await supabase.from("ai_candidate_flashcards").delete().eq("id", id);
+    if (checkError || !existingCard) {
+      logger.error("Error checking access to AI candidate", { error: checkError });
+      return new Response(JSON.stringify({ error: "Flashcard not found or access denied" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-    if (error) {
-      logger.error("Database error:", { error });
-      if (error.code === "PGRST116") {
-        return new Response(JSON.stringify({ error: "Flashcard not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
+    // If access check passes, use admin client for delete operation
+    const { error: deleteError } = await supabaseAdmin.from("ai_candidate_flashcards").delete().eq("id", id);
+
+    if (deleteError) {
+      logger.error("Database error on delete:", { error: deleteError });
+      return new Response(JSON.stringify({ error: "Failed to delete flashcard" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
