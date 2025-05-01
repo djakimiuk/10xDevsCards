@@ -25,20 +25,20 @@ Call log:
 
 ```yaml
 - main:
-    - heading "10x Devs Cards" [level=1]
-    - heading "Zaloguj się do aplikacji" [level=2]
-    - paragraph: Wprowadź swoje dane aby się zalogować
-    - text: Email
-    - textbox "Email"
-    - text: Hasło
-    - textbox "Hasło"
-    - button "Zaloguj się"
-    - link "Zapomniałeś hasła?":
-        - /url: /auth/forgot-password
-    - paragraph:
-        - text: Nie masz jeszcze konta?
-        - link "Zarejestruj się":
-            - /url: /auth/register
+  - heading "10x Devs Cards" [level=1]
+  - heading "Zaloguj się do aplikacji" [level=2]
+  - paragraph: Wprowadź swoje dane aby się zalogować
+  - text: Email
+  - textbox "Email"
+  - text: Hasło
+  - textbox "Hasło"
+  - button "Zaloguj się"
+  - link "Zapomniałeś hasła?":
+    - /url: /auth/forgot-password
+  - paragraph:
+    - text: Nie masz jeszcze konta?
+    - link "Zarejestruj się":
+      - /url: /auth/register
 ```
 
 # Test source

@@ -8,7 +8,7 @@
 ```
 Error: expect(page).toHaveScreenshot(expected)
 
-  10437 pixels (ratio 0.02 of all image pixels) are different.
+  13182 pixels (ratio 0.02 of all image pixels) are different.
 
 Expected: C:\Users\djaki\OneDrive\Documents\GitHub\10xDevsCards\e2e\generate.spec.ts-snapshots\generated-flashcards-chromium-win32.png
 Received: C:\Users\djaki\OneDrive\Documents\GitHub\10xDevsCards\test-results\generate-Flashcard-Generat-cb51f--flashcards-from-valid-text-chromium\generated-flashcards-actual.png
@@ -21,7 +21,7 @@ Call log:
     - disabled all CSS animations
   - waiting for fonts to load...
   - fonts loaded
-  - 14070 pixels (ratio 0.02 of all image pixels) are different.
+  - 16815 pixels (ratio 0.02 of all image pixels) are different.
   - waiting 100ms before taking screenshot
   - taking page screenshot
     - disabled all CSS animations
@@ -34,7 +34,7 @@ Call log:
   - waiting for fonts to load...
   - fonts loaded
   - captured a stable screenshot
-  - 10437 pixels (ratio 0.02 of all image pixels) are different.
+  - 13182 pixels (ratio 0.02 of all image pixels) are different.
 
     at C:\Users\djaki\OneDrive\Documents\GitHub\10xDevsCards\e2e\generate.spec.ts:126:26
 ```
@@ -49,97 +49,97 @@ Call log:
 - paragraph: 5745/10000 characters
 - button "Generate Flashcards"
 - heading "Review Generated Flashcards" [level=2]
-- text: "Flashcard Created: 5/1/2025, 8:45:01 PM"
+- text: "Flashcard Created: 5/1/2025, 9:21:32 PM"
 - heading "Front" [level=3]
 - text: What is JavaScript?
 - heading "Back" [level=3]
-- text: A high-level, interpreted programming language that conforms to the ECMAScript specification and supports multiple programming paradigms.
+- text: JavaScript is a high-level, interpreted programming language that conforms to the ECMAScript specification and supports multiple programming paradigms.
 - alert: The requested resource was not found.
 - button "Accept":
-    - img
-    - text: Accept
+  - img
+  - text: Accept
 - button "Edit":
-    - img
-    - text: Edit
+  - img
+  - text: Edit
 - button "Reject":
-    - img
-    - text: Reject
-- text: "Flashcard Created: 5/1/2025, 8:45:01 PM"
+  - img
+  - text: Reject
+- text: "Flashcard Created: 5/1/2025, 9:21:32 PM"
 - heading "Front" [level=3]
 - text: What is React used for?
 - heading "Back" [level=3]
-- text: React is a JavaScript library used for building user interfaces, allowing for the creation of large web applications that can change data without reloading the page.
+- text: React is a JavaScript library used for building user interfaces, particularly for creating large web applications that can change data without reloading the page.
 - button "Accept" [disabled]:
-    - img
-    - text: Accept
+  - img
+  - text: Accept
 - button "Edit" [disabled]:
-    - img
-    - text: Edit
+  - img
+  - text: Edit
 - button "Reject" [disabled]:
-    - img
-    - text: Reject
-- text: "Flashcard Created: 5/1/2025, 8:45:01 PM"
+  - img
+  - text: Reject
+- text: "Flashcard Created: 5/1/2025, 9:21:32 PM"
 - heading "Front" [level=3]
-- text: How does TypeScript relate to JavaScript?
+- text: How does TypeScript differ from JavaScript?
 - heading "Back" [level=3]
-- text: TypeScript is a strict syntactical superset of JavaScript that adds optional static typing and is designed for developing large applications, transcompiling to JavaScript.
+- text: TypeScript is a strict syntactical superset of JavaScript that adds optional static typing, making it suitable for developing large applications.
 - button "Accept":
-    - img
-    - text: Accept
+  - img
+  - text: Accept
 - button "Edit":
-    - img
-    - text: Edit
+  - img
+  - text: Edit
 - button "Reject":
-    - img
-    - text: Reject
-- text: "Flashcard Created: 5/1/2025, 8:45:01 PM"
+  - img
+  - text: Reject
+- text: "Flashcard Created: 5/1/2025, 9:21:32 PM"
 - heading "Front" [level=3]
 - text: What is the main characteristic of Tailwind CSS?
 - heading "Back" [level=3]
-- text: Tailwind CSS is a utility-first CSS framework that provides utility classes to style elements directly in the markup, promoting a different styling approach.
+- text: Tailwind CSS is a utility-first CSS framework that provides a set of utility classes to style elements directly in the markup.
 - button "Accept":
-    - img
-    - text: Accept
+  - img
+  - text: Accept
 - button "Edit":
-    - img
-    - text: Edit
+  - img
+  - text: Edit
 - button "Reject":
-    - img
-    - text: Reject
-- text: "Flashcard Created: 5/1/2025, 8:45:01 PM"
+  - img
+  - text: Reject
+- text: "Flashcard Created: 5/1/2025, 9:21:32 PM"
 - heading "Front" [level=3]
 - text: What is Playwright used for?
 - heading "Back" [level=3]
-- text: Playwright is a framework for web testing and automation, allowing for cross-browser testing of Chromium, Firefox, and WebKit with a single API.
+- text: Playwright is a framework for web testing and automation that allows testing multiple browsers (Chromium, Firefox, WebKit) with a single API.
 - button "Accept":
-    - img
-    - text: Accept
+  - img
+  - text: Accept
 - button "Edit":
-    - img
-    - text: Edit
+  - img
+  - text: Edit
 - button "Reject":
-    - img
-    - text: Reject
-- text: "Flashcard Created: 5/1/2025, 8:45:01 PM"
+  - img
+  - text: Reject
+- text: "Flashcard Created: 5/1/2025, 9:21:32 PM"
 - heading "Front" [level=3]
 - text: What is Continuous Integration (CI)?
 - heading "Back" [level=3]
-- text: CI is a development practice that involves integrating code into a shared repository frequently, with each integration verified by an automated build to detect problems early.
+- text: Continuous Integration is a development practice that involves integrating code into a shared repository multiple times a day, with automated builds verifying each check-in.
 - button "Accept":
-    - img
-    - text: Accept
+  - img
+  - text: Accept
 - button "Edit":
-    - img
-    - text: Edit
+  - img
+  - text: Edit
 - button "Reject":
-    - img
-    - text: Reject
+  - img
+  - text: Reject
 - button "Save All":
-    - img
-    - text: Save All
+  - img
+  - text: Save All
 - button "Save Accepted":
-    - img
-    - text: Save Accepted
+  - img
+  - text: Save Accepted
 ```
 
 # Test source
@@ -181,30 +181,30 @@ Call log:
    59 |
    60 |     // Create a long enough text for generation (> 1000 characters)
    61 |     const longText = `
-   62 |       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-   63 |       Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+   62 |       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+   63 |       Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
    64 |       Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
    65 |       Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-   66 |
-   67 |       JavaScript is a high-level, interpreted programming language that conforms to the ECMAScript specification.
+   66 |       
+   67 |       JavaScript is a high-level, interpreted programming language that conforms to the ECMAScript specification. 
    68 |       It is multi-paradigm, supporting event-driven, functional, and imperative programming styles.
-   69 |
-   70 |       React is a JavaScript library for building user interfaces. It allows developers to create large
-   71 |       web applications that can change data, without reloading the page. The main purpose of React is
+   69 |       
+   70 |       React is a JavaScript library for building user interfaces. It allows developers to create large 
+   71 |       web applications that can change data, without reloading the page. The main purpose of React is 
    72 |       to be fast, scalable, and simple.
-   73 |
-   74 |       TypeScript is a strict syntactical superset of JavaScript and adds optional static typing to the language.
+   73 |       
+   74 |       TypeScript is a strict syntactical superset of JavaScript and adds optional static typing to the language. 
    75 |       It is designed for the development of large applications and transcompiles to JavaScript.
-   76 |
-   77 |       Tailwind CSS is a utility-first CSS framework that provides a set of utility classes to style elements
+   76 |       
+   77 |       Tailwind CSS is a utility-first CSS framework that provides a set of utility classes to style elements 
    78 |       directly in the markup. It promotes a different way of styling compared to traditional approaches.
-   79 |
-   80 |       Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit
-   81 |       with a single API. Playwright is built to enable cross-browser web automation that is ever-green,
+   79 |       
+   80 |       Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit 
+   81 |       with a single API. Playwright is built to enable cross-browser web automation that is ever-green, 
    82 |       capable, reliable and fast.
-   83 |
-   84 |       Continuous Integration (CI) is a development practice that requires developers to integrate code into
-   85 |       a shared repository several times a day. Each check-in is then verified by an automated build, allowing
+   83 |       
+   84 |       Continuous Integration (CI) is a development practice that requires developers to integrate code into 
+   85 |       a shared repository several times a day. Each check-in is then verified by an automated build, allowing 
    86 |       teams to detect problems early.
    87 |     `.repeat(3); // Repeat to ensure we have enough text
    88 |

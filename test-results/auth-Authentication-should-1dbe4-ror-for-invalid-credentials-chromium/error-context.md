@@ -23,21 +23,21 @@ Call log:
 
 ```yaml
 - main:
-    - heading "10x Devs Cards" [level=1]
-    - heading "Zaloguj się do aplikacji" [level=2]
-    - paragraph: Wprowadź swoje dane aby się zalogować
-    - alert: Niepoprawny email lub hasło
-    - text: Email
-    - textbox "Email": invalid@example.com
-    - text: Hasło
-    - textbox "Hasło": wrongpassword
-    - button "Zaloguj się"
-    - link "Zapomniałeś hasła?":
-        - /url: /auth/forgot-password
-    - paragraph:
-        - text: Nie masz jeszcze konta?
-        - link "Zarejestruj się":
-            - /url: /auth/register
+  - heading "10x Devs Cards" [level=1]
+  - heading "Zaloguj się do aplikacji" [level=2]
+  - paragraph: Wprowadź swoje dane aby się zalogować
+  - alert: Niepoprawny email lub hasło
+  - text: Email
+  - textbox "Email": invalid@example.com
+  - text: Hasło
+  - textbox "Hasło": wrongpassword
+  - button "Zaloguj się"
+  - link "Zapomniałeś hasła?":
+    - /url: /auth/forgot-password
+  - paragraph:
+    - text: Nie masz jeszcze konta?
+    - link "Zarejestruj się":
+      - /url: /auth/register
 ```
 
 # Test source
