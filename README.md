@@ -16,7 +16,7 @@ An AI-powered web application designed to help users, especially programming lea
 
 ## Project Description
 
-AI Flashcard Generator utilizes AI (specifically the Gemini Flash model via OpenRouter.ai) to automatically generate flashcards based on user-provided text (e.g., documentation, articles, notes). This significantly reduces the manual effort required for flashcard creation. Users can also create flashcards manually, manage their sets, and utilize a spaced repetition learning method through integration with an open-source library. The Minimum Viable Product (MVP) focuses on core generation, management, and learning functionalities with a simple user account system.
+AI Flashcard Generator utilizes AI (specifically the Gemini Flash model via OpenRouter.ai) to automatically generate flashcards based on user-provided text (e.g., documentation, articles, notes). This significantly reduces the manual effort required for flashcard creation. Users can also create flashcards manually, manage their sets, and utilize a spaced repetition learning method through integration with an open-source library. The Minimum Viable Product (MVP) focuses on core generation, management, and learning functionalities with a simple user account system. TEST PR.
 
 ## Tech Stack
 
