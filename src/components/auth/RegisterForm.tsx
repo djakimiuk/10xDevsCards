@@ -6,6 +6,7 @@ import { registerUser } from "@/lib/auth";
 import { FormField, FormError } from "@/components/ui/form";
 import { registerSchema, type RegisterFormData } from "@/lib/schemas/auth";
 import { useAuthForm } from "@/hooks/useAuthForm";
+import { useEffect } from "react";
 
 export function RegisterForm() {
   const { form, isLoading, error, handleSubmit } = useAuthForm<RegisterFormData>({
@@ -16,6 +17,10 @@ export function RegisterForm() {
       window.location.href = "/auth/login?registration=success";
     },
   });
+
+  useEffect(() => {
+    document.title = "Register - 10xDevsCards";
+  }, []);
 
   return (
     <div className="w-full max-w-md mx-auto space-y-8">

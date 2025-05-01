@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import LoginPage from "./pages/LoginPage";
+import HomePage from "./pages/HomePage";
 
 test.describe("Login page tests", () => {
   let loginPage: LoginPage;
@@ -40,5 +41,11 @@ test.describe("Login page tests", () => {
 
     const forgotPasswordHref = await loginPage.forgotPasswordLink.getAttribute("href");
     expect(forgotPasswordHref).toBe("/auth/forgot-password");
+  });
+
+  test("should display the homepage", async ({ page }) => {
+    const homePage = new HomePage(page);
+    await homePage.goto();
+    await homePage.expectPageTitle("10xDevsCards");
   });
 });

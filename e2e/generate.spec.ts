@@ -125,4 +125,13 @@ test.describe("Flashcard Generation", () => {
       expect(cardIds.length).toBeGreaterThan(0, "No flashcard candidates were generated");
     }
   });
+
+  test("should handle generation process", async ({ page }) => {
+    const generatePage = new GeneratePage(page);
+    if (!page || !generatePage) {
+      throw new Error("Page or GeneratePage not initialized");
+    }
+    await generatePage.goto();
+    // ... rest of the test
+  });
 });

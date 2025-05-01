@@ -11,11 +11,17 @@ export function LogoutButton() {
       setIsLoading(true);
       await logoutUser();
     } catch (error) {
-      console.error("Błąd wylogowywania:", error);
       // Błędy wylogowywania są już obsługiwane w funkcji logoutUser
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleError = (error: unknown) => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "An unexpected error occurred";
   };
 
   return (

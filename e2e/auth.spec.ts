@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import LoginPage from "./pages/LoginPage";
+import AuthPage from "./pages/AuthPage";
 
 test.describe("Authentication", () => {
   test("should show login form", async ({ page }) => {
@@ -62,5 +63,14 @@ test.describe("Authentication", () => {
 
     // URL should be the registration page
     await expect(page).toHaveURL(/\/auth\/register$/);
+  });
+
+  test("should handle authentication process", async ({ page }) => {
+    const authPage = new AuthPage(page);
+    if (!page || !authPage) {
+      throw new Error("Page or AuthPage not initialized");
+    }
+    await authPage.goto();
+    // ... rest of the test
   });
 });

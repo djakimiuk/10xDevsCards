@@ -95,8 +95,9 @@ export function useGenerationProcess() {
 
       const newCandidates = data.flashcards.map(convertToViewModel);
       setCandidates(newCandidates);
-    } catch (err) {
-      setError(handleNetworkError(err));
+    } catch (error) {
+      setError("Failed to start generation");
+      console.error("Generation error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -200,11 +201,11 @@ export function useGenerationProcess() {
               throw new Error(await handleHttpError(response));
             }
           }
-        } catch (err) {
+        } catch (error) {
           // Update UI state to error for this candidate
           setCandidates((prev) =>
             prev.map((c) =>
-              c.id === candidate.id ? { ...c, uiState: "error", errorMessage: handleNetworkError(err) } : c
+              c.id === candidate.id ? { ...c, uiState: "error", errorMessage: handleNetworkError(error) } : c
             )
           );
           return; // Exit early if there's an error
@@ -220,8 +221,9 @@ export function useGenerationProcess() {
       if (!prev.some((c) => c.uiState === "error")) {
         setSourceText("");
       }
-    } catch (err) {
-      setError("Some flashcards failed to save. Please check individual cards for details.");
+    } catch (error) {
+      setError("Failed to process generation");
+      console.error("Processing error:", error);
     } finally {
       setIsBulkSaving(false);
     }
@@ -251,11 +253,11 @@ export function useGenerationProcess() {
           if (!response.ok) {
             throw new Error(await handleHttpError(response));
           }
-        } catch (err) {
+        } catch (error) {
           // Update UI state to error for this candidate
           setCandidates((prev) =>
             prev.map((c) =>
-              c.id === candidate.id ? { ...c, uiState: "error", errorMessage: handleNetworkError(err) } : c
+              c.id === candidate.id ? { ...c, uiState: "error", errorMessage: handleNetworkError(error) } : c
             )
           );
           return; // Exit early if there's an error
@@ -271,8 +273,9 @@ export function useGenerationProcess() {
       if (!prev.some((c) => c.uiState === "error")) {
         setSourceText("");
       }
-    } catch (err) {
-      setError("Some flashcards failed to save. Please check individual cards for details.");
+    } catch (error) {
+      setError("Failed to process generation");
+      console.error("Processing error:", error);
     } finally {
       setIsBulkSaving(false);
     }

@@ -174,3 +174,11 @@ export const resetPassword = async (password: string, confirmPassword: string) =
     throw new Error(friendlyAuthErrors.default);
   }
 };
+
+// Replace console.log with proper error handling or logging service
+export async function handleAuthError(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "An unexpected error occurred";
+}

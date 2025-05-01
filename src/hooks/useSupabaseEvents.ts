@@ -23,3 +23,11 @@ export function useSupabaseEvents(eventName: string, handler: EventHandler) {
     };
   }, [eventName, handler]);
 }
+
+// Replace console.log with proper error handling or logging service
+function handleError(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "An unexpected error occurred";
+}
