@@ -32,7 +32,7 @@ AI Flashcard Generator utilizes AI (specifically the Gemini Flash model via Open
   - [Gemini Flash](https://deepmind.google/technologies/gemini/flash/) (via [OpenRouter.ai](https://openrouter.ai/)): AI model for flashcard generation.
 - **CI/CD & Hosting:**
   - [GitHub Actions](https://github.com/features/actions): Continuous Integration & Deployment pipelines.
-  - [DigitalOcean](https://www.digitalocean.com/): Application hosting (via Docker).
+  - [Cloudflare Pages](https://pages.cloudflare.com/): Application hosting.
 - **Testing:**
   - [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/): Unit testing React components and functions.
   - [Playwright](https://playwright.dev/): End-to-end (E2E) testing and browser automation.
