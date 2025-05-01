@@ -29,8 +29,8 @@ jobs:
       - name: Fix linting issues
         run: npm run lint:fix
 
-      - name: Run linting with max warnings
-        run: npm run lint -- --max-warnings=50
+      - name: Run linting
+        run: npm run lint
         env:
           ESLINT_MAX_WARNINGS: 50
 
