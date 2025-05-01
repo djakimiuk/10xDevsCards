@@ -1,0 +1,9 @@
+name = "10xdevscards"
+compatibility_date = "2025-05-01"
+
+[[kv_namespaces]]
+binding = "SESSION"
+id = "82633e5833d48cd8c75c2864b029a3d"
+
+[site]
+bucket = "./dist" 

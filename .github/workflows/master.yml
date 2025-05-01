@@ -91,6 +91,7 @@ jobs:
     name: Deploy to Cloudflare Pages
     needs: build
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
       deployments: write
@@ -113,10 +114,14 @@ jobs:
           name: build-artifacts
           path: dist/
 
+      - name: Update wrangler.toml with KV namespace ID
+        run: |
+          sed -i "s/82633e5833d48cd8c75c2864b029a3d/${{ secrets.CLOUDFLARE_KV_SESSION_ID }}/g" wrangler.toml
+
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages publish dist --project-name=10xdevscards
+          command: pages deploy dist --project-name=10xdevscards
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

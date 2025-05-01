@@ -17,4 +17,7 @@ export default defineConfig({
   adapter: cloudflare({
     mode: "advanced",
   }),
+  experimental: {
+    sessions: true,
+  },
 });
