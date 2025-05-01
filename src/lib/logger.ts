@@ -36,6 +36,7 @@ export class Logger {
     if (this.shouldLog(LogLevel.ERROR)) {
       const formattedMessage = this.formatMessage(LogLevel.ERROR, message, meta);
       // Use console.error for errors as they need to be visible in production
+      // eslint-disable-next-line no-console
       console.error(formattedMessage, error);
     }
   }
@@ -44,6 +45,7 @@ export class Logger {
     if (this.shouldLog(LogLevel.WARN)) {
       const formattedMessage = this.formatMessage(LogLevel.WARN, message, meta);
       // Use console.warn for warnings as they might be important in production
+      // eslint-disable-next-line no-console
       console.warn(formattedMessage);
     }
   }
@@ -52,6 +54,7 @@ export class Logger {
     if (this.shouldLog(LogLevel.INFO)) {
       const formattedMessage = this.formatMessage(LogLevel.INFO, message, meta);
       // Use console.info for informational messages
+      // eslint-disable-next-line no-console
       console.info(formattedMessage);
     }
   }
@@ -60,6 +63,7 @@ export class Logger {
     if (this.shouldLog(LogLevel.DEBUG)) {
       const formattedMessage = this.formatMessage(LogLevel.DEBUG, message, meta);
       // Use console.debug for debug messages that should be hidden in production
+      // eslint-disable-next-line no-console
       console.debug(formattedMessage);
     }
   }

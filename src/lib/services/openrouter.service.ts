@@ -357,7 +357,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         let errorData;
         try {
           errorData = await response.json();
-        } catch (_) {
+        } catch {
           errorData = { error: "Could not parse error response" };
         }
 

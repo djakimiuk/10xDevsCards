@@ -50,12 +50,14 @@ export async function getSession(request: Request): Promise<Session | null> {
     } = await supabase.auth.getSession();
 
     if (error) {
+      // eslint-disable-next-line no-console
       console.error("Error getting session:", error);
       return null;
     }
 
     return session;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Unexpected error getting session:", error);
     return null;
   }

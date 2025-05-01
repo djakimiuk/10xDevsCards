@@ -2,6 +2,8 @@ import type { APIContext } from "astro";
 import { z } from "zod";
 import type { CreateFlashcardCommand } from "../../../types";
 import { FlashcardsService, FlashcardError } from "../../../lib/services/flashcards.service";
+import { FlashcardGeneratorService } from "../../../lib/services/flashcard-generator.service";
+import { OpenRouterService } from "../../../lib/services/openrouter.service";
 
 // Validation schema for request body
 const createFlashcardSchema = z.object({
@@ -72,7 +74,9 @@ export async function POST({ request, locals }: APIContext) {
     const command = validationResult.data as CreateFlashcardCommand;
 
     // 2. Create flashcard using service
-    const flashcardsService = new FlashcardsService(locals.supabase);
+    const openRouter = new OpenRouterService();
+    const generator = new FlashcardGeneratorService(openRouter, locals.supabase);
+    const flashcardsService = new FlashcardsService(locals.supabase, generator);
     const flashcard = await flashcardsService.createFlashcard(command);
 
     // 3. Return created flashcard
@@ -81,6 +85,7 @@ export async function POST({ request, locals }: APIContext) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Error in POST /api/flashcards:", error);
 
     if (error instanceof FlashcardError) {

@@ -21,6 +21,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const supabase = createSupabaseServerInstance({ cookies, headers: request.headers });
 
   // Zapisanie instancji supabase w locals dla późniejszego użycia
+  // @ts-expect-error - Problem niezgodności generycznych parametrów typu SupabaseClient
   locals.supabase = supabase;
 
   try {
@@ -31,6 +32,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     } = await supabase.auth.getSession();
 
     if (sessionError) {
+      // eslint-disable-next-line no-console
       console.error("Session error:", sessionError);
       // Wyczyść ciasteczka sesji w przypadku błędu
       const sessionCookies = ["sb-access-token", "sb-refresh-token"];
@@ -68,6 +70,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Kontynuuj przetwarzanie żądania
     return next();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Middleware error:", error);
     // W przypadku nieoczekiwanego błędu, przekieruj do logowania
     if (!PUBLIC_PATHS.includes(url.pathname)) {

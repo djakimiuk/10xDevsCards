@@ -3,7 +3,6 @@ import { z } from "zod";
 import { FlashcardGeneratorService } from "../../../lib/services/flashcard-generator.service";
 import { OpenRouterService } from "../../../lib/services/openrouter.service";
 import { logger } from "../../../lib/logger";
-import { createCookieAdapter } from "../../../lib/cookies";
 
 // Validation schema for request body
 const generateSchema = z.object({
@@ -15,7 +14,7 @@ const generateSchema = z.object({
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals, cookies: astroCookies }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     logger.info("Generating flashcards");
 
@@ -58,9 +57,6 @@ export const POST: APIRoute = async ({ request, locals, cookies: astroCookies })
 
     // Ensure we have a proper Supabase client
     if (!locals.supabase) {
-      // Convert AstroCookies to cookie adapter format
-      const cookies = createCookieAdapter(astroCookies);
-
       logger.error("No Supabase instance in locals - this is likely a middleware issue");
       return new Response(
         JSON.stringify({

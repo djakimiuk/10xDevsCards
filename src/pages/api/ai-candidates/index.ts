@@ -53,6 +53,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const { data: aiCandidates, error } = await query;
 
     if (error) {
+      // eslint-disable-next-line no-console
       console.error("Database error:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), {
         status: 500,

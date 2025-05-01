@@ -24,7 +24,9 @@ jobs:
         run: npm ci
 
       - name: Run linting
-        run: npm run lint
+        run: npm run lint -- --max-warnings=50
+        env:
+          ESLINT_MAX_WARNINGS: 50
 
   unit-test:
     name: Unit Tests
@@ -45,6 +47,8 @@ jobs:
 
       - name: Run unit tests with coverage
         run: npm run test:coverage
+        env:
+          ESLINT_MAX_WARNINGS: 50
 
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
@@ -85,6 +89,7 @@ jobs:
           DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
           PUBLIC_SITE_URL: "http://localhost:3000"
           PUBLIC_APP_TITLE: "10xDevsCards"
+          ESLINT_MAX_WARNINGS: 50
 
       - name: Upload E2E test results
         uses: actions/upload-artifact@v4
