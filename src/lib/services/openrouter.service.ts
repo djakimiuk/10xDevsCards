@@ -15,7 +15,7 @@ import type {
   GenerateFlashcardsResponse,
   ModelParams,
 } from "./openrouter.types";
-import { Logger } from "../logger";
+import { logger } from "../logger";
 
 // Define interface for test options
 interface TestOptions {
@@ -38,7 +38,6 @@ export class OpenRouterService {
   private readonly _apiEndpoint = "https://openrouter.ai/api/v1/chat/completions";
   private readonly _maxRetries = 3;
   private readonly _baseDelay = 1000; // 1 second
-  private readonly _logger: Logger;
   private readonly _defaultModel = "meta-llama/llama-4-maverick:free";
   private _testOptions: TestOptions;
 
@@ -51,12 +50,10 @@ export class OpenRouterService {
       testSystemMessage: "You are a helpful assistant.",
     }
   ) {
-    this._logger = new Logger("OpenRouterService");
-
     const apiKey = options.isTest ? options.testApiKey : import.meta.env.PUBLIC_OPENROUTER_API_KEY;
 
     if (!apiKey) {
-      this._logger.error("Missing API key", { env: import.meta.env.MODE });
+      logger.error("Missing API key", { env: import.meta.env.MODE });
       throw new ValidationError("PUBLIC_OPENROUTER_API_KEY environment variable is not set");
     }
 
@@ -102,7 +99,7 @@ Focus on creating flashcards that:
 Remember: You MUST generate at least 3-5 high-quality flashcards for the given text.`;
     this.modelName = options.isTest ? options.testModelName : this._defaultModel;
 
-    this._logger.info("Initializing OpenRouter service", {
+    logger.info("Initializing OpenRouter service", {
       model: this.modelName,
       systemMessage: this.systemMessage,
     });
@@ -114,7 +111,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         max_tokens: 4000,
       });
     } catch (error) {
-      this._logger.error("Invalid default model parameters", {}, error as Error);
+      logger.error("Invalid default model parameters", {}, error as Error);
       throw new ValidationError("Invalid default model parameters");
     }
 
@@ -131,7 +128,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         },
       });
     } catch (error) {
-      this._logger.error("Invalid response format configuration", {}, error as Error);
+      logger.error("Invalid response format configuration", {}, error as Error);
       throw new ValidationError("Invalid response format configuration");
     }
 
@@ -143,7 +140,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     try {
       return MessageSchema.parse(message);
     } catch (error) {
-      this._logger.error(
+      logger.error(
         "Message validation failed",
         {
           role: message.role,
@@ -168,7 +165,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     frequency_penalty?: number;
     presence_penalty?: number;
   } {
-    this._logger.debug("Formatting request payload", {
+    logger.debug("Formatting request payload", {
       modelName: this.modelName,
       messageCount: messages.length,
     });
@@ -181,7 +178,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
   }
 
   private _parseResponse(response: string): GenerateFlashcardsResponse {
-    this._logger.debug("Raw response received", { response });
+    logger.debug("Raw response received", { response });
 
     try {
       // First, try to parse the raw string directly
@@ -194,7 +191,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         }
       } catch (error) {
         // If direct parsing fails, continue with standard flow
-        this._logger.debug("Direct JSON parsing failed, trying alternative methods", {
+        logger.debug("Direct JSON parsing failed, trying alternative methods", {
           error: (error as Error).message,
         });
       }
@@ -215,7 +212,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
           return ChatCompletionResponseSchema.parse(contentObj);
         }
       } catch (error) {
-        this._logger.debug("Response object parsing failed", {
+        logger.debug("Response object parsing failed", {
           error: (error as Error).message,
         });
       }
@@ -224,13 +221,13 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
       if (jsonMatch) {
         const jsonStr = jsonMatch[1].trim();
-        this._logger.debug("Attempting to parse JSON from markdown", { jsonStr });
+        logger.debug("Attempting to parse JSON from markdown", { jsonStr });
 
         try {
           const parsed = JSON.parse(jsonStr);
           return ChatCompletionResponseSchema.parse(parsed);
         } catch (error) {
-          this._logger.error("Failed to parse JSON from markdown", { error, jsonStr });
+          logger.error("Failed to parse JSON from markdown", { error, jsonStr });
           throw new ValidationError(`Invalid JSON in markdown: ${(error as Error).message}`);
         }
       }
@@ -241,7 +238,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       if (error instanceof ValidationError) {
         throw error;
       }
-      this._logger.error("Failed to process OpenRouter response", { error, response });
+      logger.error("Failed to process OpenRouter response", { error, response });
       throw new ValidationError(`Failed to process response from OpenRouter: ${(error as Error).message}`);
     }
   }
@@ -261,7 +258,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       }
 
       if (retryCount >= this._maxRetries) {
-        this._logger.error(`Max retries (${this._maxRetries}) reached`, { retryCount });
+        logger.error(`Max retries (${this._maxRetries}) reached`, { retryCount });
 
         // Ensure we're throwing the right error type
         if (error instanceof Error && error.message.includes("Failed to fetch")) {
@@ -277,7 +274,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
 
       // Calculate exponential backoff delay with jitter
       const delay = this._baseDelay * Math.pow(2, retryCount) * (0.5 + Math.random() * 0.5);
-      this._logger.warn(`Operation failed, retrying in ${Math.round(delay)}ms`, {
+      logger.warn(`Operation failed, retrying in ${Math.round(delay)}ms`, {
         retryCount: retryCount + 1,
         maxRetries: this._maxRetries,
         error: (error as Error).message,
@@ -294,7 +291,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
   private async _makeRequest(messages: Message[]): Promise<string> {
     const payload = this._formatPayload(messages);
 
-    this._logger.debug("Making request to OpenRouter", {
+    logger.debug("Making request to OpenRouter", {
       messageCount: messages.length,
       temperature: payload.temperature,
     });
@@ -314,7 +311,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       if (!response.ok) {
         const statusCode = response.status;
         const errorMessage = `OpenRouter API error: ${response.status} ${response.statusText}`;
-        this._logger.error("OpenRouter API error", {
+        logger.error("OpenRouter API error", {
           status: response.status,
           statusText: response.statusText,
         });
@@ -329,7 +326,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
 
       // Parse JSON response
       const data = await response.json();
-      this._logger.debug("Successfully received API response", {
+      logger.debug("Successfully received API response", {
         contentLength: JSON.stringify(data).length,
         choicesCount: data.choices?.length,
       });
@@ -342,7 +339,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       // Fallback: return entire response as string
       return JSON.stringify(data);
     } catch (error) {
-      this._logger.error("Failed to make OpenRouter API request", { error });
+      logger.error("Failed to make OpenRouter API request", { error });
       if (error instanceof NetworkError || error instanceof APIError || error instanceof ValidationError) {
         throw error;
       }
@@ -357,7 +354,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
   }
 
   public async sendMessage(userMessage: string): Promise<ResponseType> {
-    this._logger.info("Sending message to OpenRouter", {
+    logger.info("Sending message to OpenRouter", {
       messageLength: userMessage.length,
       model: this.modelName,
     });
@@ -381,7 +378,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       // Parse and validate the response
       return this._parseResponse(responseText);
     } catch (error) {
-      this._logger.error(
+      logger.error(
         "Message sending failed",
         {
           messageLength: userMessage.length,
@@ -394,17 +391,17 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
   }
 
   public setModelParams(params: ModelParams): void {
-    this._logger.info("Updating model parameters", { newParams: params });
+    logger.info("Updating model parameters", { newParams: params });
     try {
       this.modelParams = ModelParamsSchema.parse(params);
     } catch (error) {
-      this._logger.error("Invalid model parameters", { params }, error as Error);
+      logger.error("Invalid model parameters", { params }, error as Error);
       throw new ValidationError(`Invalid model parameters: ${(error as Error).message}`);
     }
   }
 
   public getResponse(): ResponseType {
-    this._logger.warn("getResponse() called - method not implemented", {});
+    logger.warn("getResponse() called - method not implemented", {});
     throw new Error("getResponse() must be called after sendMessage()");
   }
 }

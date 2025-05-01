@@ -97,155 +97,127 @@ describe("OpenRouterService", () => {
       ],
     };
 
-    it(
-      "should send message and return parsed response",
-      async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(mockResponse),
-        });
+    it("should send message and return parsed response", { timeout: TEST_TIMEOUT }, async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
 
-        const result = await service.sendMessage(mockMessage);
+      const result = await service.sendMessage(mockMessage);
 
-        expect(result).toEqual({
-          flashcards: [
-            {
-              front: "Test question",
-              back: "Test answer",
-              confidence: 0.9,
-              explanation: "Test explanation",
-            },
-          ],
-          reference: "Test reference",
-        });
-
-        expect(global.fetch).toHaveBeenCalledWith("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${mockApiKey}`,
-            "HTTP-Referer": mockSiteUrl,
+      expect(result).toEqual({
+        flashcards: [
+          {
+            front: "Test question",
+            back: "Test answer",
+            confidence: 0.9,
+            explanation: "Test explanation",
           },
-          body: expect.any(String),
-        });
-      },
-      { timeout: TEST_TIMEOUT }
-    );
+        ],
+        reference: "Test reference",
+      });
 
-    it(
-      "should retry on network error",
-      async () => {
-        const networkError = new TypeError("Failed to fetch");
-        (global.fetch as jest.Mock).mockRejectedValueOnce(networkError).mockResolvedValueOnce({
+      expect(global.fetch).toHaveBeenCalledWith("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${mockApiKey}`,
+          "HTTP-Referer": mockSiteUrl,
+        },
+        body: expect.any(String),
+      });
+    });
+
+    it("should retry on network error", { timeout: TEST_TIMEOUT }, async () => {
+      const networkError = new TypeError("Failed to fetch");
+      (global.fetch as jest.Mock).mockRejectedValueOnce(networkError).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await service.sendMessage(mockMessage);
+
+      expect(result).toEqual({
+        flashcards: [
+          {
+            front: "Test question",
+            back: "Test answer",
+            confidence: 0.9,
+            explanation: "Test explanation",
+          },
+        ],
+        reference: "Test reference",
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("should retry on 5xx error", { timeout: TEST_TIMEOUT }, async () => {
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+          statusText: "Service Unavailable",
+        })
+        .mockResolvedValueOnce({
           ok: true,
           json: () => Promise.resolve(mockResponse),
         });
 
-        const result = await service.sendMessage(mockMessage);
+      const result = await service.sendMessage(mockMessage);
 
-        expect(result).toEqual({
-          flashcards: [
-            {
-              front: "Test question",
-              back: "Test answer",
-              confidence: 0.9,
-              explanation: "Test explanation",
-            },
-          ],
-          reference: "Test reference",
-        });
-        expect(global.fetch).toHaveBeenCalledTimes(2);
-      },
-      { timeout: TEST_TIMEOUT }
-    );
+      expect(result).toEqual({
+        flashcards: [
+          {
+            front: "Test question",
+            back: "Test answer",
+            confidence: 0.9,
+            explanation: "Test explanation",
+          },
+        ],
+        reference: "Test reference",
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
 
-    it(
-      "should retry on 5xx error",
-      async () => {
-        (global.fetch as jest.Mock)
-          .mockResolvedValueOnce({
-            ok: false,
-            status: 503,
-            statusText: "Service Unavailable",
-          })
-          .mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve(mockResponse),
-          });
+    it("should throw NetworkError after max retries", { timeout: TEST_TIMEOUT }, async () => {
+      const networkError = new TypeError("Failed to fetch");
+      (global.fetch as jest.Mock).mockRejectedValue(networkError);
 
-        const result = await service.sendMessage(mockMessage);
+      await expect(service.sendMessage(mockMessage)).rejects.toThrow(NetworkError);
+      expect(global.fetch).toHaveBeenCalledTimes(4); // Initial + 3 retries
+    });
 
-        expect(result).toEqual({
-          flashcards: [
-            {
-              front: "Test question",
-              back: "Test answer",
-              confidence: 0.9,
-              explanation: "Test explanation",
-            },
-          ],
-          reference: "Test reference",
-        });
-        expect(global.fetch).toHaveBeenCalledTimes(2);
-      },
-      { timeout: TEST_TIMEOUT }
-    );
+    it("should throw APIError for non-5xx errors", { timeout: TEST_TIMEOUT }, async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+      });
 
-    it(
-      "should throw NetworkError after max retries",
-      async () => {
-        const networkError = new TypeError("Failed to fetch");
-        (global.fetch as jest.Mock).mockRejectedValue(networkError);
+      await expect(service.sendMessage(mockMessage)).rejects.toThrow(APIError);
+      expect(global.fetch).toHaveBeenCalledTimes(1); // No retries
+    });
 
-        await expect(service.sendMessage(mockMessage)).rejects.toThrow(NetworkError);
-        expect(global.fetch).toHaveBeenCalledTimes(4); // Initial + 3 retries
-      },
-      { timeout: TEST_TIMEOUT }
-    );
+    it("should throw ValidationError for invalid response format", { timeout: TEST_TIMEOUT }, async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ choices: [] }), // Missing message content
+      });
 
-    it(
-      "should throw APIError for non-5xx errors",
-      async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: false,
-          status: 400,
-          statusText: "Bad Request",
-        });
+      await expect(service.sendMessage(mockMessage)).rejects.toThrow(ValidationError);
+    });
 
-        await expect(service.sendMessage(mockMessage)).rejects.toThrow(APIError);
-        expect(global.fetch).toHaveBeenCalledTimes(1); // No retries
-      },
-      { timeout: TEST_TIMEOUT }
-    );
+    it("should throw ValidationError for invalid JSON in response", { timeout: TEST_TIMEOUT }, async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: "invalid json" } }],
+          }),
+      });
 
-    it(
-      "should throw ValidationError for invalid response format",
-      async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ choices: [] }), // Missing message content
-        });
-
-        await expect(service.sendMessage(mockMessage)).rejects.toThrow(ValidationError);
-      },
-      { timeout: TEST_TIMEOUT }
-    );
-
-    it(
-      "should throw ValidationError for invalid JSON in response",
-      async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              choices: [{ message: { content: "invalid json" } }],
-            }),
-        });
-
-        await expect(service.sendMessage(mockMessage)).rejects.toThrow(ValidationError);
-      },
-      { timeout: TEST_TIMEOUT }
-    );
+      await expect(service.sendMessage(mockMessage)).rejects.toThrow(ValidationError);
+    });
   });
 
   describe("getResponse", () => {

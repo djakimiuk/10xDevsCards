@@ -11,6 +11,9 @@ const friendlyAuthErrors: Record<string, string> = {
   "Too many requests": "Zbyt wiele prób logowania. Spróbuj ponownie za chwilę",
   "Network error": "Problem z połączeniem. Sprawdź internet i spróbuj ponownie",
   "User already registered": "Użytkownik o tym adresie email już istnieje",
+  "Hasła nie są identyczne": "Hasła nie są identyczne",
+  "Hasło musi mieć co najmniej 6 znaków": "Hasło musi mieć co najmniej 6 znaków",
+  "Brak aktywnej sesji": "Brak aktywnej sesji. Spróbuj ponownie zresetować hasło.",
   default: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później",
 };
 
@@ -30,7 +33,7 @@ export const loginUser = async (email: string, password: string): Promise<void> 
 
     if (error) {
       logger.error("Login failed", { error: error.message });
-      throw error;
+      throw new Error(error.message);
     }
 
     logger.info("User logged in successfully", { email });
@@ -39,7 +42,10 @@ export const loginUser = async (email: string, password: string): Promise<void> 
     window.location.href = "/generate";
   } catch (error) {
     logger.error("Unexpected error during login", { error });
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
+    }
+    throw new Error(friendlyAuthErrors.default);
   }
 };
 
@@ -55,11 +61,14 @@ export const registerUser = async (email: string, password: string): Promise<voi
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (error) {
       logger.error("Registration failed", { error: error.message });
-      throw error;
+      throw new Error(error.message);
     }
 
     logger.info("User registered successfully", { email });
@@ -71,7 +80,10 @@ export const registerUser = async (email: string, password: string): Promise<voi
     window.location.href = "/auth/login?registration=success";
   } catch (error) {
     logger.error("Unexpected error during registration", { error });
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
+    }
+    throw new Error(friendlyAuthErrors.default);
   }
 };
 
@@ -86,7 +98,7 @@ export const logoutUser = async (): Promise<void> => {
 
     if (error) {
       logger.error("Logout failed", { error: error.message });
-      throw error;
+      throw new Error(error.message);
     }
 
     logger.info("User logged out successfully");
@@ -95,7 +107,10 @@ export const logoutUser = async (): Promise<void> => {
     window.location.href = "/auth/login";
   } catch (error) {
     logger.error("Unexpected error during logout", { error });
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
+    }
+    throw new Error(friendlyAuthErrors.default);
   }
 };
 
@@ -107,14 +122,14 @@ export const sendPasswordResetEmail = async (email: string) => {
 
     if (error) {
       logger.error("Password reset error:", error);
-      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
+      throw new Error(error.message);
     }
 
     logger.info("Password reset link sent to email", { email });
   } catch (error) {
     logger.error("Caught error during password reset:", error);
     if (error instanceof Error) {
-      throw error;
+      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
     }
     throw new Error(friendlyAuthErrors.default);
   }
@@ -122,11 +137,15 @@ export const sendPasswordResetEmail = async (email: string) => {
 
 export const resetPassword = async (password: string, confirmPassword: string) => {
   try {
+    // Validate password match
     if (password !== confirmPassword) {
+      logger.error("Password mismatch during reset");
       throw new Error("Hasła nie są identyczne");
     }
 
+    // Validate password length
     if (password.length < 6) {
+      logger.error("Password too short during reset");
       throw new Error("Hasło musi mieć co najmniej 6 znaków");
     }
 
@@ -137,10 +156,12 @@ export const resetPassword = async (password: string, confirmPassword: string) =
     } = await supabase.auth.getSession();
 
     if (sessionError) {
-      throw new Error(friendlyAuthErrors[sessionError.message] || friendlyAuthErrors.default);
+      logger.error("Session error during password reset:", sessionError);
+      throw new Error(sessionError.message);
     }
 
     if (!session) {
+      logger.error("No active session during password reset");
       throw new Error("Brak aktywnej sesji. Spróbuj ponownie zresetować hasło.");
     }
 
@@ -149,15 +170,26 @@ export const resetPassword = async (password: string, confirmPassword: string) =
     });
 
     if (error) {
-      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
+      logger.error("Error updating password:", error);
+      throw new Error(error.message);
     }
 
+    logger.info("Password reset successful");
     // Po pomyślnym resecie hasła, przekieruj na stronę logowania
     window.location.href = "/auth/login?reset=success";
   } catch (error) {
-    console.error("Złapany błąd:", error);
+    logger.error("Caught error during password reset:", error);
     if (error instanceof Error) {
-      throw error;
+      // For validation errors, throw them directly
+      if (
+        error.message === "Hasła nie są identyczne" ||
+        error.message === "Hasło musi mieć co najmniej 6 znaków" ||
+        error.message === "Brak aktywnej sesji. Spróbuj ponownie zresetować hasło."
+      ) {
+        throw error;
+      }
+      // For other errors, use the mapping
+      throw new Error(friendlyAuthErrors[error.message] || friendlyAuthErrors.default);
     }
     throw new Error(friendlyAuthErrors.default);
   }
@@ -166,7 +198,7 @@ export const resetPassword = async (password: string, confirmPassword: string) =
 // Replace console.log with proper error handling or logging service
 export async function handleAuthError(error: unknown) {
   if (error instanceof Error) {
-    return error.message;
+    return friendlyAuthErrors[error.message] || friendlyAuthErrors.default;
   }
-  return "An unexpected error occurred";
+  return friendlyAuthErrors.default;
 }
