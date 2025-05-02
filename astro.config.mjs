@@ -17,8 +17,10 @@ export default defineConfig({
       noExternal: ["react", "react-dom"],
       target: "webworker",
     },
-    define: {
-      "globalThis.MessageChannel": "undefined",
+    resolve: {
+      alias: {
+        MessageChannel: "./src/utils/message-channel.js",
+      },
     },
   },
   adapter: cloudflare({
