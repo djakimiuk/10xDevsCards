@@ -72,6 +72,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Node.js adapter
+        run: npm install @astrojs/node --save
+
       - name: Debug Astro config
         run: cat astro.config.mjs
 
@@ -93,20 +96,15 @@ jobs:
           echo "Contents of project root:"
           ls -la
 
-          # Try to locate any dist-like or build directories
-          echo "Looking for potential build output directories:"
-          find . -type d -name "dist*" -o -name "build*" -o -name ".output*" -o -name "public*" | sort
+          echo "Contents of dist directory:"
+          ls -la dist || echo "dist directory not found"
 
-          # Check if server.mjs was generated anywhere
-          echo "Looking for server.mjs file:"
-          find . -name "server.mjs" | sort
+          echo "Contents of dist/client directory (if exists):"
+          ls -la dist/client || echo "dist/client directory not found"
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 10xdevscards
-          directory: .
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: "3"
+      - name: Deploy to Cloudflare Pages with Wrangler
+        run: |
+          npx wrangler pages deploy dist/client --project-name=10xdevscards --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
