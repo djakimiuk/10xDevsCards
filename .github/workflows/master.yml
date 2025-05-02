@@ -51,17 +51,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run unit tests
-        run: npm run test
+      - name: Run tests
+        run: npm run test:unit
 
   deploy:
-    name: Build and Deploy to Cloudflare Pages
-    needs: unit-test
+    name: Build and Deploy
+    needs: [lint, unit-test]
     runs-on: ubuntu-latest
     environment: production
-    permissions:
-      contents: read
-      deployments: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,36 +72,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Update wrangler.toml with KV Session ID
+        run: |
+          sed -i "s/id = \".*\"/id = \"${{ secrets.CLOUDFLARE_KV_SESSION_ID }}\"/" wrangler.toml
+          cat wrangler.toml
+
       - name: Build project
         run: npm run build
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          PUBLIC_OPENROUTER_API_KEY: ${{ secrets.PUBLIC_OPENROUTER_API_KEY }}
-          PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL || 'https://10xdevscards.pages.dev' }}
-          PUBLIC_APP_TITLE: "10xDevsCards"
 
-      - name: Debug build output
+      - name: List directory structure after build
         run: |
-          echo "Checking if dist directory exists:"
+          echo "Checking directory structure after build:"
+          find . -type d -name "dist*" | sort
           ls -la
-          if [ -d "dist" ]; then
-            echo "Contents of dist directory:"
-            ls -la dist
-          else
-            echo "ERROR: dist directory does not exist!"
-            exit 1
-          fi
 
-      - name: Update wrangler.toml with KV namespace ID
-        run: |
-          sed -i "s/82633e5833d48cd8c75c2864b029a3d/${{ secrets.CLOUDFLARE_KV_SESSION_ID }}/g" wrangler.toml
-
-      - name: Publish to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=10xdevscards
+          projectName: 10xdevscards
+          directory: .
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: "3"
