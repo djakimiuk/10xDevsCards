@@ -77,17 +77,34 @@ jobs:
           sed -i "s/id = \".*\"/id = \"${{ secrets.CLOUDFLARE_KV_SESSION_ID }}\"/" wrangler.toml
           cat wrangler.toml
 
-      - name: Build project
-        run: npm run build
+      - name: Debug Astro config
+        run: cat astro.config.mjs
+
+      - name: Enable verbose npm logs
+        run: npm config set loglevel verbose
+
+      - name: Build project with verbose output
+        run: npm run build -- --verbose
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          NODE_ENV: production
 
-      - name: List directory structure after build
+      - name: Debug build output
         run: |
           echo "Checking directory structure after build:"
-          find . -type d -name "dist*" | sort
+          find . -maxdepth 2 -type d | sort
+
+          echo "Contents of project root:"
           ls -la
+
+          # Try to locate any dist-like or build directories
+          echo "Looking for potential build output directories:"
+          find . -type d -name "dist*" -o -name "build*" -o -name ".output*" -o -name "public*" | sort
+
+          # Check if server.mjs was generated anywhere
+          echo "Looking for server.mjs file:"
+          find . -name "server.mjs" | sort
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
