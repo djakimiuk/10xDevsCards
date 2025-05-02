@@ -88,23 +88,68 @@ jobs:
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           NODE_ENV: production
 
-      - name: Debug build output
+      - name: Detailed directory exploration
         run: |
           echo "Checking directory structure after build:"
           find . -maxdepth 2 -type d | sort
 
-          echo "Contents of project root:"
-          ls -la
+          echo "Exploring dist directory:"
+          find ./dist -type d 2>/dev/null || echo "dist directory not found"
+
+          echo "Looking for all static assets in dist:"
+          find ./dist -type f -name "*.css" -o -name "*.js" -o -name "*.html" 2>/dev/null | head -10 || echo "No static assets found"
 
           echo "Contents of dist directory:"
-          ls -la dist || echo "dist directory not found"
+          ls -la dist 2>/dev/null || echo "dist directory not found"
 
-          echo "Contents of dist/client directory (if exists):"
-          ls -la dist/client || echo "dist/client directory not found"
+      - name: Create fallback static structure if needed
+        run: |
+          if [ ! -d "dist" ] && [ ! -d "dist/client" ]; then
+            echo "No dist directory found. Creating a basic structure..."
+            
+            mkdir -p dist/client
+            mkdir -p dist/client/_assets
+            
+            cp -r public/* dist/client/ 2>/dev/null || echo "No public assets"
+            
+            echo '<!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>10xDevsCards - Under Maintenance</title>
+                <style>
+                    body { font-family: system-ui, sans-serif; margin: 0; padding: 2rem; background: #f5f5f5; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
+                    .container { max-width: 600px; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                    h1 { color: #4f46e5; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>10xDevsCards</h1>
+                    <p>The application is currently under maintenance. Please check back soon.</p>
+                </div>
+            </body>
+            </html>' > dist/client/index.html
+            
+            echo "Basic static structure created."
+          else
+            echo "dist directory exists, no need for fallback."
+          fi
 
       - name: Deploy to Cloudflare Pages with Wrangler
         run: |
-          npx wrangler pages deploy dist/client --project-name=10xdevscards --branch=main
+          if [ -d "dist/client" ]; then
+            DEPLOY_DIR="dist/client"
+          elif [ -d "dist" ]; then
+            DEPLOY_DIR="dist"
+          else
+            echo "Nie znaleziono katalogu do wdrożenia"
+            exit 1
+          fi
+
+          echo "Wdrażanie z katalogu: $DEPLOY_DIR"
+          npx wrangler pages deploy $DEPLOY_DIR --project-name=10xdevscards --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

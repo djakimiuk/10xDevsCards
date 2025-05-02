@@ -8,5 +8,8 @@ upload.format = "directory"
 [site]
 bucket = "./dist"
 
+[pages]
+pages_build_output_dir = "./dist"
+
 [env.production]
 workers_dev = true 
