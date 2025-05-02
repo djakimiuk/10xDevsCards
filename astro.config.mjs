@@ -13,8 +13,21 @@ export default defineConfig({
   server: { port: 3000 },
   vite: {
     plugins: [tailwindcss()],
+    ssr: {
+      noExternal: ["react", "react-dom"],
+      target: "webworker",
+    },
+    define: {
+      "globalThis.MessageChannel": "undefined",
+    },
   },
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    mode: "directory",
+    runtime: {
+      mode: "off",
+    },
+    imageService: "compile",
+  }),
   build: {
     assets: "_assets",
   },
