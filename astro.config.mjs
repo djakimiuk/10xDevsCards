@@ -17,5 +17,11 @@ export default defineConfig({
   adapter: cloudflare({
     mode: "directory",
     functionPerRoute: false,
+    runtime: {
+      mode: "off",
+    },
+    sessions: {
+      enabled: false,
+    },
   }),
 });
