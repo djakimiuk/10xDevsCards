@@ -72,11 +72,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Update wrangler.toml with KV Session ID
-        run: |
-          sed -i "s/id = \".*\"/id = \"${{ secrets.CLOUDFLARE_KV_SESSION_ID }}\"/" wrangler.toml
-          cat wrangler.toml
-
       - name: Debug Astro config
         run: cat astro.config.mjs
 

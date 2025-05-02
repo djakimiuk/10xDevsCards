@@ -1,10 +1,6 @@
 name = "10xdevscards"
 compatibility_date = "2024-05-02"
 
-[[kv_namespaces]]
-binding = "SESSION"
-id = "82633e5833d48cd8c75c2864b029a3d"
-
 [build]
 command = "npm run build"
 upload.format = "directory"
