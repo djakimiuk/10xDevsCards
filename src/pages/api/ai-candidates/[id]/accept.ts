@@ -19,8 +19,8 @@ export const POST: APIRoute = async ({ params, locals }) => {
 
     logger.info("Accepting AI candidate", { id });
 
-    // Get the candidate flashcard - use regular client for reading
-    const { data: candidate, error: fetchError } = await supabase
+    // Get the candidate flashcard - use admin client for reading
+    const { data: candidate, error: fetchError } = await supabaseAdmin
       .from("ai_candidate_flashcards")
       .select(
         `

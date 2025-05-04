@@ -13,7 +13,7 @@ interface UseAuthFormReturn<T extends FieldValues> {
   isLoading: boolean;
   error: string | null;
   success: boolean;
-  handleSubmit: () => Promise<void>;
+  handleSubmit: (data: T) => Promise<void>;
 }
 
 export function useAuthForm<T extends FieldValues>({ schema, onSubmit }: UseAuthFormOptions<T>): UseAuthFormReturn<T> {
@@ -23,14 +23,13 @@ export function useAuthForm<T extends FieldValues>({ schema, onSubmit }: UseAuth
 
   const form = useForm<T>({
     resolver: zodResolver(schema),
-    mode: "onBlur",
+    mode: "onTouched",
   });
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (data: T) => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = form.getValues();
       await onSubmit(data);
       setSuccess(true);
     } catch (err) {

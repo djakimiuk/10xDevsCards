@@ -185,7 +185,7 @@ export function useGenerationProcess() {
       for (const candidate of markedCandidates) {
         try {
           if (candidate.uiState === "marked_for_acceptance") {
-            const response = await fetch(`/api/ai-candidates/${candidate.id}/accept`, {
+            const response = await fetch(`/api/ai-candidates/${candidate.id}/accept/`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
             });
@@ -246,7 +246,7 @@ export function useGenerationProcess() {
       // Process each accepted candidate
       for (const candidate of acceptedCandidates) {
         try {
-          const response = await fetch(`/api/ai-candidates/${candidate.id}/accept`, {
+          const response = await fetch(`/api/ai-candidates/${candidate.id}/accept/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
           });

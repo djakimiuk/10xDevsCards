@@ -25,7 +25,6 @@ export function LoginForm() {
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="mt-8 space-y-6" data-test-id="login-form">
           {success && <FormSuccess message="Zalogowano pomyślnie." />}
-
           {error && <FormError error={error} />}
 
           <div className="space-y-4">

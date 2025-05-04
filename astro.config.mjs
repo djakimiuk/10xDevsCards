@@ -5,8 +5,9 @@ import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import cloudflare from "@astrojs/cloudflare";
+import commonjs from "@rollup/plugin-commonjs";
 
-// MessageChannel polyfill for Cloudflare Workers
+// MessageChannel polyfill for Cloudflare Workers - Restore definition
 const messageChannelPolyfill = {
   name: "message-channel-polyfill",
   enforce: "pre",
@@ -31,14 +32,21 @@ export default defineConfig({
   integrations: [react(), sitemap()],
   server: { port: 3000 },
   vite: {
-    plugins: [tailwindcss(), messageChannelPolyfill],
+    plugins: [
+      commonjs({
+        transformMixedEsModules: true,
+        ignoreGlobal: true,
+      }),
+      tailwindcss(),
+      messageChannelPolyfill,
+    ],
     ssr: {
-      noExternal: ["react", "react-dom"],
+      noExternal: [],
       target: "webworker",
     },
     resolve: {
       alias: {
-        MessageChannel: "./src/utils/message-channel.js",
+        // MessageChannel: "./src/utils/message-channel.js",
       },
     },
   },
