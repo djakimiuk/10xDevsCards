@@ -5,6 +5,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/db/database.types";
 import { AuthError } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 // Import Shadcn/UI components (ensure these are correctly installed and pathed)
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export function LoginForm({ registrationSuccess, resetSuccess }: LoginFormProps)
         errorMessage = catchError.message;
       }
       setError(errorMessage);
-      console.error("Błąd logowania:", catchError);
+      logger.error("Błąd logowania:", catchError);
     } finally {
       setLoading(false);
     }

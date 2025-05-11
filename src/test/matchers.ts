@@ -1,13 +1,16 @@
 import { expect } from "vitest";
-
-interface CustomMatchers<R = unknown> {
-  toHaveAuthError(expected: string): R;
-  toBeValidSession(): R;
-}
+import type { Session } from "@supabase/supabase-js";
 
 declare module "vitest" {
-  interface Assertion<T = any> extends CustomMatchers<T> {}
-  interface AsymmetricMatchersContaining extends CustomMatchers {}
+  interface Assertion {
+    toHaveAuthError(expected: string): void;
+    toBeValidSession(): void;
+  }
+
+  interface AsymmetricMatchersContaining {
+    toHaveAuthError(expected: string): void;
+    toBeValidSession(): void;
+  }
 }
 
 expect.extend({
@@ -21,7 +24,7 @@ expect.extend({
           : `Expected "${received}" to contain auth error "${expected}"`,
     };
   },
-  toBeValidSession(received: any) {
+  toBeValidSession(received: Partial<Session>) {
     const hasRequiredFields = received?.access_token && received?.refresh_token && received?.user?.id;
 
     return {
