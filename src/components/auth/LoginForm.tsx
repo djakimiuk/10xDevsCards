@@ -1,79 +1,135 @@
-import { FormProvider } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { loginUser } from "@/lib/auth";
-import { FormField, FormError, FormSuccess } from "@/components/ui/form";
-import { loginSchema, type LoginFormData } from "@/lib/schemas/auth";
-import { useAuthForm } from "@/hooks/useAuthForm";
+"use client";
 
-export function LoginForm() {
-  const { form, isLoading, error, success, handleSubmit } = useAuthForm<LoginFormData>({
-    schema: loginSchema,
-    onSubmit: async (data) => {
-      await loginUser(data.email, data.password);
-    },
-  });
+import React, { useState } from "react";
+import { createBrowserSupabaseClient } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/db/database.types";
+import { AuthError } from "@supabase/supabase-js";
+
+// Import Shadcn/UI components (ensure these are correctly installed and pathed)
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+
+interface LoginFormProps {
+  registrationSuccess?: boolean;
+  resetSuccess?: boolean;
+}
+
+export function LoginForm({ registrationSuccess, resetSuccess }: LoginFormProps) {
+  const supabaseBrowser: SupabaseClient<Database> = createBrowserSupabaseClient();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: signInError } = await supabaseBrowser.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+      window.location.href = "/generate";
+    } catch (catchError) {
+      let errorMessage = "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.";
+      if (catchError instanceof AuthError) {
+        errorMessage = catchError.message;
+      } else if (catchError instanceof Error) {
+        errorMessage = catchError.message;
+      }
+      setError(errorMessage);
+      console.error("Błąd logowania:", catchError);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="w-full max-w-md space-y-8" data-test-id="login-form-container">
+    <div className="w-full max-w-md mx-auto space-y-8">
       <h1 className="text-4xl font-bold text-center tracking-tight">10x Devs Cards</h1>
-      <div className="text-center">
-        <h2 className="text-2xl font-bold">Zaloguj się do aplikacji</h2>
-        <p className="text-muted-foreground mt-2">Wprowadź swoje dane aby się zalogować</p>
-      </div>
-
-      <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="mt-8 space-y-6" data-test-id="login-form">
-          {success && <FormSuccess message="Zalogowano pomyślnie." />}
-          {error && <FormError error={error} />}
-
-          <div className="space-y-4">
-            <FormField
-              name="email"
-              label="Email"
-              type="email"
-              placeholder="twoj@email.com"
-              disabled={isLoading}
-              data-test-id="login-email-input"
-            />
-
-            <FormField
-              name="password"
-              label="Hasło"
-              type="password"
-              disabled={isLoading}
-              data-test-id="login-password-input"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <Button type="submit" disabled={isLoading} className="w-full" data-test-id="login-submit-button">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? "Logowanie..." : "Zaloguj się"}
-            </Button>
-
-            <div className="flex flex-col gap-2 text-center text-sm text-muted-foreground">
-              <a
-                href="/auth/forgot-password"
-                className="font-medium text-primary hover:underline"
-                data-test-id="forgot-password-link"
-              >
-                Zapomniałeś hasła?
-              </a>
-              <p>
-                Nie masz jeszcze konta?{" "}
-                <a
-                  href="/auth/register"
-                  className="font-medium text-primary hover:underline"
-                  data-test-id="register-link"
-                >
-                  Zarejestruj się
-                </a>
+      <Card className="w-full">
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-2xl">Logowanie</CardTitle>
+          <CardDescription>Wprowadź swoje dane, aby uzyskać dostęp.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 pt-0 space-y-4">
+          {registrationSuccess && (
+            <div className="mb-4 p-3 rounded-md bg-green-100 border border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300">
+              <p className="text-sm">
+                Rejestracja zakończona pomyślnie! Sprawdź swoją skrzynkę e-mail, aby potwierdzić konto.
               </p>
             </div>
+          )}
+          {resetSuccess && (
+            <div className="mb-4 p-3 rounded-md bg-green-100 border border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300">
+              <p className="text-sm">Resetowanie hasła zakończone pomyślnie! Sprawdź swoją skrzynkę e-mail.</p>
+            </div>
+          )}
+          {error && (
+            <div className="mb-4 p-3 rounded-md bg-red-100 border border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="twoj@email.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Hasło</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logowanie...
+                </>
+              ) : (
+                "Zaloguj się"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col items-center space-y-4 pt-4 px-6 pb-6">
+          <div className="text-sm">
+            <a href="/auth/register" className="font-medium text-primary hover:underline">
+              Nie masz konta? Zarejestruj się
+            </a>
           </div>
-        </form>
-      </FormProvider>
+          <div className="text-sm">
+            <a href="/auth/request-password-reset" className="font-medium text-primary hover:underline">
+              Zapomniałeś hasła?
+            </a>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

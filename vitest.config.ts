@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 import react from "@astrojs/react";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -14,22 +14,34 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "jsdom",
     globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{js,ts,jsx,tsx}"],
-    exclude: ["node_modules", ".astro", "dist"],
+    exclude: ["node_modules/**/*", "e2e/**/*"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      include: ["src/**/*.{js,ts,jsx,tsx}"],
-      exclude: ["src/**/*.{test,spec}.{js,ts,jsx,tsx}", "src/**/*.d.ts", "src/types.ts"],
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "**/*.d.ts",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/*.config.{ts,js}",
+        "e2e/**/*",
+      ],
       thresholds: {
-        statements: 15,
-        branches: 15,
-        functions: 15,
-        lines: 15,
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
       },
     },
-    setupFiles: ["./src/test/setup.ts"],
+    watch: true,
+    reporters: ["verbose"],
+    ui: {
+      open: !process.env.CI,
+    },
   },
 });

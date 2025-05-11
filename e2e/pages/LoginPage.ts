@@ -40,16 +40,28 @@ export default class LoginPage extends BasePage {
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
     await this.submitButton.click();
+
+    // Wait for either error message or redirect
+    await Promise.race([
+      this.errorAlert.waitFor({ state: "visible", timeout: 10000 }),
+      this.page.waitForURL(/\/generate$/, { timeout: 10000 }),
+    ]);
   }
 
   async waitForPageLoad() {
     await super.waitForPageLoad();
-    await this.emailInput.waitFor({ state: "visible" });
+    await Promise.all([
+      this.emailInput.waitFor({ state: "visible", timeout: 10000 }),
+      this.passwordInput.waitFor({ state: "visible", timeout: 10000 }),
+      this.submitButton.waitFor({ state: "visible", timeout: 10000 }),
+    ]);
   }
 
   // Assertions
   async expectLoginError() {
-    await expect(this.errorAlert).toBeVisible();
+    await expect(this.errorAlert).toBeVisible({ timeout: 10000 });
+    const errorText = await this.errorAlert.textContent();
+    expect(errorText).toBeTruthy();
   }
 
   async expectRegistrationSuccess() {

@@ -1,4 +1,44 @@
 ---
-// Przekierowanie ze strony głównej do strony logowania
-return Astro.redirect("/auth/login");
+import Layout from "@/layouts/Layout.astro";
+import { createServerSupabaseClient, getUser as getSupabaseUser } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
+
+const supabase = createServerSupabaseClient({ cookies: Astro.cookies });
+
+try {
+  const { user, error: userError } = await getSupabaseUser(supabase);
+
+  if (userError) {
+    logger.error("Error getting user session:", userError);
+    // Potentially redirect to an error page or login if session check fails critically
+  }
+
+  if (user) {
+    return Astro.redirect("/generate", 302); // Changed from /profile to /generate
+  } else {
+    // If no user and no critical error, redirect to login
+    return Astro.redirect("/auth/login", 302);
+  }
+} catch (error) {
+  logger.error("Error checking auth state on index page:", error);
+  // Fallback redirect to login in case of other errors
+  return Astro.redirect("/auth/login", 302);
+}
 ---
+
+<Layout title="10x Devs Cards">
+  <main class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-center mb-8">Welcome to 10x Devs Cards</h1>
+    <div class="flex flex-col items-center gap-4">
+      <a href="/auth/login" class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md">
+        Login
+      </a>
+      <a
+        href="/auth/register"
+        class="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2 rounded-md"
+      >
+        Register
+      </a>
+    </div>
+  </main>
+</Layout>

@@ -1,64 +1,43 @@
+import { createServerSupabaseClient, getUser } from "./supabase";
 import type { Session } from "@supabase/supabase-js";
-import { createSupabaseServerInstance } from "./supabase.server";
 import type { CookieOptions } from "@supabase/ssr";
 
-function parseCookies(cookieHeader: string | null): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  if (!cookieHeader) return cookies;
-
-  cookieHeader.split(";").forEach((cookie) => {
-    const parts = cookie.split("=");
-    const name = parts[0]?.trim();
-    if (name) {
-      cookies[name] = parts[1]?.trim() || "";
-    }
-  });
-
-  return cookies;
-}
-
 /**
- * Pobiera sesję użytkownika z żądania
- * @param request - obiekt żądania
- * @returns Promise<Session | null> - sesja użytkownika lub null
+ * Get the current user's session from a request
  */
-export async function getSession(request: Request): Promise<Session | null> {
-  try {
-    const cookieHeader = request.headers.get("cookie");
-    const cookies = parseCookies(cookieHeader);
+export async function getSessionFromRequest(request: Request): Promise<Session | null> {
+  const cookieHeader = request.headers.get("cookie");
+  const cookies = new Map<string, string>();
 
-    const supabase = createSupabaseServerInstance({
-      headers: request.headers,
-      cookies: {
-        get: (name: string) => cookies[name] || null,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        set: (name: string, value: string, options: CookieOptions) => {
-          // W kontekście getSession nie potrzebujemy ustawiać cookies
-          return;
-        },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        delete: (name: string, options?: CookieOptions) => {
-          // W kontekście getSession nie potrzebujemy usuwać cookies
-          return;
-        },
-      },
+  if (cookieHeader) {
+    cookieHeader.split("; ").forEach((cookie) => {
+      const [name, value] = cookie.split("=");
+      if (name && value) {
+        cookies.set(name, value);
+      }
     });
-
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.error("Error getting session:", error);
-      return null;
-    }
-
-    return session;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("Unexpected error getting session:", error);
-    return null;
   }
+
+  const cookieAdapter = {
+    get: (name: string) => cookies.get(name) || null,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    set: (name: string, value: string, options: CookieOptions) => {
+      // Not needed for getting session
+    },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    delete: (name: string, options?: CookieOptions) => {
+      // Not needed for getting session
+    },
+  };
+
+  const supabase = createServerSupabaseClient({ cookies: cookieAdapter });
+  const { user } = await getUser(supabase);
+
+  if (!user) return null;
+
+  return {
+    access_token: cookies.get("sb-access-token") || "",
+    refresh_token: cookies.get("sb-refresh-token") || "",
+    user,
+  } as Session;
 }

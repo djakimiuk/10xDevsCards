@@ -1,11 +1,13 @@
 ---
-import "../styles/global.css";
+import "../styles/globals.css";
+import { ThemeToggle } from "../components/ThemeToggle";
 
-interface Props {
+export interface Props {
   title?: string;
 }
 
 const { title = "10x Astro Starter" } = Astro.props;
+const mainClass = "container mx-auto px-4 pt-20";
 ---
 
 <!doctype html>
@@ -16,9 +18,20 @@ const { title = "10x Astro Starter" } = Astro.props;
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <script is:inline src="/src/lib/theme-init.js"></script>
   </head>
-  <body>
-    <slot />
+  <body class="min-h-screen bg-background text-foreground antialiased font-sans">
+    <header class="fixed top-0 w-full border-b border-border bg-background/80 backdrop-blur z-50">
+      <div class="container mx-auto flex h-16 items-center px-4">
+        <a href="/" class="mr-auto font-bold"> 10xDevsCards </a>
+        <div class="ml-auto">
+          <ThemeToggle client:load />
+        </div>
+      </div>
+    </header>
+    <main class={mainClass}>
+      <slot />
+    </main>
   </body>
 </html>
 

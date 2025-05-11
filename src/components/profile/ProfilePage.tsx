@@ -1,5 +1,7 @@
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
-import { supabase } from "@/lib/supabase.client";
+import { supabaseClient } from "@/db/supabase.client";
+import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 interface ProfilePageProps {
   userEmail: string;
@@ -8,10 +10,22 @@ interface ProfilePageProps {
 
 export function ProfilePage({ userEmail, isTemporaryPassword }: ProfilePageProps) {
   const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    if (error) throw error;
+    try {
+      const { error } = await supabaseClient.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        logger.error("Error updating password:", error);
+        toast.error("Nie udało się zmienić hasła. Spróbuj ponownie później.");
+        throw error;
+      }
+
+      toast.success("Hasło zostało zmienione pomyślnie!");
+    } catch (error) {
+      logger.error("Unexpected error during password change:", error);
+      toast.error("Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.");
+    }
   };
 
   return (

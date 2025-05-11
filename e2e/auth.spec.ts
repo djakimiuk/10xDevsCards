@@ -4,6 +4,22 @@ import AuthPage from "./pages/AuthPage";
 import { logger } from "../src/lib/logger";
 
 test.describe("Authentication", () => {
+  test.beforeEach(async ({ context }) => {
+    // Start tracing for all tests in this describe block
+    await context.tracing.start({
+      screenshots: true,
+      snapshots: true,
+      sources: true,
+    });
+  });
+
+  test.afterEach(async ({ context }, testInfo) => {
+    // Stop tracing and save to test-results directory
+    await context.tracing.stop({
+      path: `./test-results/traces/${testInfo.title.replace(/\s+/g, "-")}.zip`,
+    });
+  });
+
   test("should show login form", async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
@@ -14,8 +30,19 @@ test.describe("Authentication", () => {
     await expect(loginPage.passwordInput).toBeVisible();
     await expect(loginPage.submitButton).toBeVisible();
 
-    // Take a screenshot for visual testing
-    await expect(page).toHaveScreenshot("login-page.png");
+    // Take a screenshot for visual testing with masking
+    await page.evaluate(() => {
+      // Remove any dynamic content that might change between runs
+      const dynamicElements = document.querySelectorAll('[data-testid="dynamic-content"]');
+      dynamicElements.forEach((el) => el.remove());
+    });
+
+    expect(
+      await page.screenshot({
+        mask: [loginPage.emailInput, loginPage.passwordInput],
+        animations: "disabled",
+      })
+    ).toMatchSnapshot("login-page.png");
   });
 
   test("should show error for invalid credentials", async ({ page }) => {
@@ -74,5 +101,40 @@ test.describe("Authentication", () => {
     }
     await authPage.goto();
     // ... rest of the test
+  });
+
+  test("should handle complete authentication flow", async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    const authPage = new AuthPage(page);
+
+    // Start recording a trace for this specific test
+    await page.context().tracing.start({
+      screenshots: true,
+      snapshots: true,
+      sources: true,
+    });
+
+    try {
+      await loginPage.goto();
+      await loginPage.waitForPageLoad();
+
+      // Test registration flow
+      await loginPage.registerLink.click();
+      await expect(page).toHaveURL(/\/auth\/register$/);
+
+      // Test login flow
+      await loginPage.goto();
+      await loginPage.login(process.env.DEFAULT_USER_EMAIL || "", process.env.DEFAULT_USER_PASSWORD || "");
+      await expect(page).toHaveURL(/\/generate$/);
+
+      // Test logout flow
+      await authPage.logout();
+      await expect(page).toHaveURL(/\/auth\/login$/);
+    } finally {
+      // Save trace for this specific test
+      await page.context().tracing.stop({
+        path: `./test-results/traces/complete-auth-flow.zip`,
+      });
+    }
   });
 });

@@ -1,58 +1,55 @@
 ---
 /// <reference types="astro/client" />
 import Layout from "@/layouts/Layout.astro";
-import { ProfilePage } from "@/components/profile/ProfilePage";
-import { createServerClient } from "@supabase/ssr";
-import type { Database } from "@/db/database.types";
+import { createServerSupabaseClient, getUser as getSupabaseUser } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
+import type { User } from "@supabase/supabase-js";
 
 // Disable SSR for this page as it needs to be dynamic
 export const prerender = false;
 
-// Tworzenie klienta Supabase
-const supabase = createServerClient<Database>(
-  import.meta.env.PUBLIC_SUPABASE_URL,
-  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-  {
-    cookies: {
-      get: (key) => Astro.cookies.get(key)?.value,
-      set: (key, value, options) => Astro.cookies.set(key, value, options),
-      remove: (key, options) => Astro.cookies.delete(key, options),
-    },
+let userData: User | null = null;
+
+try {
+  const supabase = createServerSupabaseClient({ cookies: Astro.cookies });
+
+  // Get user data
+  const { user, error: userError } = await getSupabaseUser(supabase);
+
+  if (userError) {
+    logger.error("Error getting user session for profile:", userError);
+    return Astro.redirect("/auth/login");
   }
-);
 
-// Sprawdź czy użytkownik jest zalogowany
-const {
-  data: { session },
-} = await supabase.auth.getSession();
+  if (!user) {
+    return Astro.redirect("/auth/login");
+  }
 
-// Jeśli nie ma sesji, przekieruj na stronę logowania
-if (!session) {
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/auth/login",
-    },
-  });
-}
-
-// Sprawdź czy użytkownik ma tymczasowe hasło
-const isTemporaryPassword = Astro.url.searchParams.get("temp_password") === "true";
-
-// Upewnij się, że email istnieje
-const userEmail = session.user.email;
-if (!userEmail) {
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/auth/login",
-    },
-  });
+  userData = user;
+} catch (error) {
+  logger.error("Unexpected error in profile page:", error);
+  return Astro.redirect("/auth/login");
 }
 ---
 
 <Layout title="Profil - 10xDevsCards">
   <main class="container max-w-4xl mx-auto p-6">
-    <ProfilePage client:load userEmail={userEmail} isTemporaryPassword={isTemporaryPassword} />
+    <h1 class="text-4xl font-bold mb-8">Profil użytkownika</h1>
+    {
+      userData && (
+        <div class="bg-card text-card-foreground shadow rounded-lg p-6">
+          <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Dane podstawowe</h2>
+            <p>
+              <strong>Email:</strong> {userData.email}
+            </p>
+            <p>
+              <strong>ID:</strong> {userData.id}
+            </p>
+          </div>
+        </div>
+      )
+    }
+    {!userData && <p>Ładowanie danych profilu lub wystąpił błąd...</p>}
   </main>
 </Layout>

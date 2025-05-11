@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase.client";
+import { logoutUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 
 export function LogoutButton() {
@@ -9,9 +9,7 @@ export function LogoutButton() {
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      window.location.href = "/auth/login";
+      await logoutUser();
     } catch (error) {
       logger.error("Error during logout", { error });
     } finally {
