@@ -96,7 +96,7 @@ jobs:
           PUBLIC_OPENROUTER_API_KEY: ${{ secrets.PUBLIC_OPENROUTER_API_KEY }}
 
       - name: Debug Astro config
-        run: cat astro.config.mjs
+        run: cat astro.config.ts
 
       - name: Enable verbose npm logs
         run: npm config set loglevel verbose
