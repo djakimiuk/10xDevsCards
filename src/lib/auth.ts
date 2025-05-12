@@ -15,7 +15,7 @@ const friendlyAuthErrors: Record<string, string> = {
   "Brak aktywnej sesji": "Brak aktywnej sesji. Spróbuj ponownie zresetować hasło.",
   "Nie udało się utworzyć sesji": "Nie udało się utworzyć sesji",
   "Session fetch failed": "Brak aktywnej sesji",
-  "Logout failed in Supabase": "Wystąpił błąd podczas wylogowywania",
+  "Logout failed": "Wystąpił błąd podczas wylogowywania",
   "Missing Supabase configuration": "Brak konfiguracji Supabase",
   default: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później",
 };
@@ -24,10 +24,19 @@ const friendlyAuthErrors: Record<string, string> = {
  * Helper function to create a Supabase client with environment variables
  */
 const createSupabaseClient = () => {
-  const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+  logger.debug("Creating Supabase client with config:", {
+    url: supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+  });
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    logger.error("Missing Supabase configuration", {
+      hasUrl: !!supabaseUrl,
+      hasAnonKey: !!supabaseAnonKey,
+    });
     throw new Error("Missing Supabase configuration");
   }
 
@@ -38,15 +47,34 @@ const createSupabaseClient = () => {
  * Helper function to handle auth errors consistently
  */
 export const handleAuthError = (error: unknown): never => {
-  logger.error("Auth error occurred", { error });
+  logger.debug("handleAuthError received error:", {
+    errorType: error?.constructor?.name,
+    errorInstance: error instanceof Error,
+    errorMessage: error instanceof Error ? error.message : String(error),
+    isAuthError: error instanceof AuthError,
+    stackTrace: error instanceof Error ? error.stack : undefined,
+    hasMapping: error instanceof Error && error.message in friendlyAuthErrors,
+  });
 
   if (error instanceof AuthError) {
     const message = error.message;
+    logger.debug("Handling AuthError", {
+      message,
+      mappedMessage: friendlyAuthErrors[message],
+      hasMapping: message in friendlyAuthErrors,
+    });
     throw new Error(friendlyAuthErrors[message] || friendlyAuthErrors.default);
   } else if (error instanceof Error) {
     const message = error.message;
+    logger.debug("Handling standard Error", {
+      message,
+      mappedMessage: friendlyAuthErrors[message],
+      hasMapping: message in friendlyAuthErrors,
+      willUseDefault: !friendlyAuthErrors[message],
+    });
     throw new Error(friendlyAuthErrors[message] || friendlyAuthErrors.default);
   } else {
+    logger.debug("Handling unknown error type");
     throw new Error(friendlyAuthErrors.default);
   }
 };
@@ -111,18 +139,68 @@ export async function registerUser(email: string, password: string): Promise<voi
  * @returns Promise<void>
  * @throws Error z przyjaznym komunikatem błędu
  */
-export async function logoutUser(): Promise<void> {
-  const supabase = createSupabaseClient();
+export const logoutUser = async (): Promise<void> => {
+  logger.debug("Starting logout process");
 
-  const { error } = await supabase.auth.signOut();
+  try {
+    const supabase = createSupabaseClient();
+    logger.debug("Supabase client created");
 
-  if (error) {
-    handleAuthError(new Error("Logout failed in Supabase"));
+    const { error } = await supabase.auth.signOut();
+    logger.debug("Logout attempt completed", {
+      hasError: !!error,
+      errorType: error?.constructor?.name,
+      errorMessage: error?.message,
+      isAuthError: error instanceof AuthError,
+      errorDetails: error,
+    });
+
+    if (error) {
+      logger.debug("Handling signOut error", {
+        originalError: error,
+        originalErrorType: error.constructor.name,
+        originalMessage: error.message,
+        isAuthError: error instanceof AuthError,
+      });
+
+      // Jeśli to nie jest AuthError, tworzymy nowy AuthError
+      if (!(error instanceof AuthError)) {
+        const authError = new AuthError("Logout failed");
+        logger.debug("Created new AuthError", {
+          newError: authError,
+          newErrorType: authError.constructor.name,
+          newErrorMessage: authError.message,
+        });
+        handleAuthError(authError);
+      }
+
+      handleAuthError(error);
+    }
+
+    logger.debug("Logout successful, redirecting to login page");
+    window.location.href = "/auth/login";
+  } catch (error) {
+    logger.debug("Caught error in logoutUser catch block", {
+      errorType: error?.constructor?.name,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      isAuthError: error instanceof AuthError,
+      error,
+    });
+
+    // Jeśli to nie jest AuthError, tworzymy nowy AuthError
+    if (!(error instanceof AuthError)) {
+      const authError = new AuthError("Logout failed");
+      logger.debug("Created new AuthError in catch block", {
+        newError: authError,
+        newErrorType: authError.constructor.name,
+        newErrorMessage: authError.message,
+      });
+      handleAuthError(authError);
+    }
+
+    handleAuthError(error);
   }
-
-  logger.info("User logged out successfully");
-  window.location.href = "/auth/login";
-}
+};
 
 /**
  * Wysyłanie emaila resetującego hasło
