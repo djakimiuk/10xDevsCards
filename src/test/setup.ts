@@ -5,6 +5,15 @@ import "./matchers";
 
 // Configure global test environment
 beforeAll(() => {
+  // Add logging to check environment variables
+  console.log("Test Environment Variables:", {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
+    NODE_ENV: process.env.NODE_ENV,
+    VITEST: process.env.VITEST,
+    TEST_MODE: process.env.TEST_MODE,
+  });
+
   // Mock window.location
   const windowLocation = { href: "" };
   Object.defineProperty(window, "location", {

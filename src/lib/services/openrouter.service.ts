@@ -276,147 +276,146 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
   }
 
   private async _retryWithExponentialBackoff<T>(operation: () => Promise<T>, retryCount = 0): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      // Don't retry certain errors
-      if (error instanceof ValidationError) {
-        throw error;
-      }
+    const maxAttempts = this._maxRetries + 1; // +1 for initial attempt
+    let currentAttempt = 0;
+    const retryId = Math.random().toString(36).substring(7);
 
-      // Don't retry APIError with non-5xx status
-      if (error instanceof APIError && (error.status < 500 || error.status >= 600)) {
-        throw error;
-      }
+    console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Starting retry sequence:`, {
+      maxRetries: this._maxRetries,
+      maxAttempts,
+      retryCount,
+      isTestMode: this._testOptions.isTest,
+      testApiKey: this._testOptions.testApiKey?.substring(0, 8) + "...",
+      testSiteUrl: this._testOptions.testSiteUrl,
+    });
 
-      if (retryCount >= this._maxRetries) {
-        logger.error(`Max retries (${this._maxRetries}) reached`, { retryCount });
+    while (currentAttempt < maxAttempts) {
+      console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Attempt ${currentAttempt + 1}/${maxAttempts}`, {
+        currentAttempt,
+        retryCount,
+        delay: currentAttempt > 0 ? Math.pow(2, currentAttempt - 1) * 1000 : 0,
+      });
 
-        // Ensure we're throwing the right error type
-        if (error instanceof Error && error.message.includes("Failed to fetch")) {
-          throw new NetworkError(error.message);
-        }
+      try {
+        const result = await operation();
+        console.log(
+          `[DEBUG Retry ${retryId} ${new Date().toISOString()}] Operation successful on attempt ${currentAttempt + 1}`
+        );
+        return result;
+      } catch (error) {
+        currentAttempt++;
 
-        if (error instanceof NetworkError || error instanceof APIError) {
+        console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Error on attempt ${currentAttempt}:`, {
+          error: error instanceof Error ? error.message : "Unknown error",
+          type: error?.constructor?.name,
+          isNetworkError: error instanceof Error && error.message.includes("Failed to fetch"),
+          isAPIError: error instanceof APIError,
+          currentAttempt,
+          maxAttempts,
+          shouldRetry:
+            currentAttempt < maxAttempts &&
+            !(error instanceof ValidationError) &&
+            !(error instanceof APIError && (error.status < 500 || error.status >= 600)),
+        });
+
+        // Don't retry certain errors
+        if (error instanceof ValidationError) {
           throw error;
         }
 
-        throw new NetworkError(`Max retries reached: ${(error as Error).message}`);
+        // Don't retry APIError with non-5xx status
+        if (error instanceof APIError && (error.status < 500 || error.status >= 600)) {
+          throw error;
+        }
+
+        if (currentAttempt === maxAttempts) {
+          console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Max retries reached, throwing final error`);
+
+          // Ensure we're throwing the right error type
+          if (error instanceof Error && error.message.includes("Failed to fetch")) {
+            throw new NetworkError(error.message);
+          }
+
+          if (error instanceof NetworkError || error instanceof APIError) {
+            throw error;
+          }
+
+          throw new NetworkError("Max retries reached");
+        }
+
+        // Wait before next retry using exponential backoff
+        const delay = Math.pow(2, currentAttempt - 1) * 1000;
+        if (currentAttempt < maxAttempts) {
+          console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Waiting ${delay}ms before next attempt`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
       }
-
-      // Calculate exponential backoff delay with jitter
-      const delay = this._baseDelay * Math.pow(2, retryCount) * (0.5 + Math.random() * 0.5);
-      logger.warn(`Operation failed, retrying in ${Math.round(delay)}ms`, {
-        retryCount: retryCount + 1,
-        maxRetries: this._maxRetries,
-        error: (error as Error).message,
-      });
-
-      // Wait for the backoff delay
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      // Retry with incremented count
-      return this._retryWithExponentialBackoff(operation, retryCount + 1);
     }
+
+    throw new NetworkError("Max retries reached");
   }
 
   private async _makeRequest(messages: Message[]): Promise<string> {
     const payload = this._formatPayload(messages);
+    const siteUrl = this._testOptions.isTest ? this._testOptions.testSiteUrl : "http://localhost:3000";
 
-    logger.debug("Making request to OpenRouter", {
-      messageCount: messages.length,
-      temperature: payload.temperature,
-      model: payload.model,
-      endpoint: this._apiEndpoint,
+    const result = await fetch(this._apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "HTTP-Referer": siteUrl,
+      },
+      body: JSON.stringify(payload),
     });
 
-    try {
-      // Log the actual payload for debugging (without sensitive data)
-      const safePayload = { ...payload };
-      if (safePayload.messages && safePayload.messages.length > 0) {
-        safePayload.messages = safePayload.messages.map((m) => ({
-          ...m,
-          content: m.content.length > 50 ? m.content.substring(0, 50) + "..." : m.content,
-        }));
+    // Handle HTTP errors
+    if (!result.ok) {
+      const statusCode = result.status;
+      let errorData;
+      try {
+        errorData = await result.json();
+      } catch {
+        errorData = { error: "Could not parse error response" };
       }
-      logger.debug("Request payload", { payload: safePayload });
 
-      const response = await fetch(this._apiEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-          "HTTP-Referer": import.meta.env.PUBLIC_SITE_URL || this._testOptions.testSiteUrl,
-        },
-        body: JSON.stringify(payload),
+      const errorMessage = `OpenRouter API error: ${result.status} ${result.statusText}`;
+      logger.error("OpenRouter API error", {
+        status: result.status,
+        statusText: result.statusText,
+        errorData,
       });
 
-      // Handle HTTP errors
-      if (!response.ok) {
-        const statusCode = response.status;
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          errorData = { error: "Could not parse error response" };
-        }
-
-        const errorMessage = `OpenRouter API error: ${response.status} ${response.statusText}`;
-        logger.error("OpenRouter API error", {
-          status: response.status,
-          statusText: response.statusText,
-          errorData,
-        });
-
-        // Handle 5xx errors differently for retry logic
-        if (statusCode >= 500 && statusCode < 600) {
-          throw new NetworkError(`Server error: ${statusCode} ${response.statusText}`);
-        } else {
-          throw new APIError(errorMessage, statusCode);
-        }
+      // Handle 5xx errors differently for retry logic
+      if (statusCode >= 500 && statusCode < 600) {
+        throw new NetworkError(`Server error: ${statusCode} ${result.statusText}`);
+      } else {
+        throw new APIError(errorMessage, statusCode);
       }
-
-      // Parse JSON response
-      const data = await response.json();
-      logger.debug("Successfully received API response", {
-        contentLength: JSON.stringify(data).length,
-        choicesCount: data.choices?.length,
-      });
-
-      // Log first 100 chars of the response for debugging
-      if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
-        const content = data.choices[0].message.content;
-        logger.debug("API response content preview", {
-          preview: content.substring(0, 100) + (content.length > 100 ? "..." : ""),
-        });
-      }
-
-      // Extract content directly
-      if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
-        return data.choices[0].message.content;
-      }
-
-      // Fallback: return entire response as string
-      return JSON.stringify(data);
-    } catch (error) {
-      logger.error("Failed to make OpenRouter API request", {
-        error,
-        message: error instanceof Error ? error.message : "Unknown error",
-        name: error instanceof Error ? error.name : "Unknown",
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-
-      if (error instanceof NetworkError || error instanceof APIError || error instanceof ValidationError) {
-        throw error;
-      }
-      if (error instanceof Error && error.message.includes("Failed to fetch")) {
-        throw new NetworkError(`Failed to fetch: ${error.message}`);
-      }
-      if (error instanceof Error) {
-        throw new NetworkError(`API request failed: ${error.message}`);
-      }
-      throw new NetworkError("Failed to make OpenRouter API request");
     }
+
+    // Parse JSON response
+    const data = await result.json();
+    logger.debug("Successfully received API response", {
+      contentLength: JSON.stringify(data).length,
+      choicesCount: data.choices?.length,
+    });
+
+    // Log first 100 chars of the response for debugging
+    if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+      const content = data.choices[0].message.content;
+      logger.debug("API response content preview", {
+        preview: content.substring(0, 100) + (content.length > 100 ? "..." : ""),
+      });
+    }
+
+    // Extract content directly
+    if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+      return data.choices[0].message.content;
+    }
+
+    // Fallback: return entire response as string
+    return JSON.stringify(data);
   }
 
   public async sendMessage(userMessage: string): Promise<ResponseType> {
@@ -439,7 +438,16 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
       ];
 
       // Make request with retry logic
-      const responseText = await this._retryWithExponentialBackoff(() => this._makeRequest(messages));
+      const responseText = await this._retryWithExponentialBackoff(async () => {
+        try {
+          return await this._makeRequest(messages);
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("Failed to fetch")) {
+            throw new NetworkError(error.message);
+          }
+          throw error;
+        }
+      });
 
       // Parse and validate the response
       return this._parseResponse(responseText);

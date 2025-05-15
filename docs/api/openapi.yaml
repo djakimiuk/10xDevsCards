@@ -1,0 +1,322 @@
+openapi: 3.0.3
+info:
+  title: Flashcards API
+  description: API do zarządzania fiszkami edukacyjnymi
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API endpoint
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+          description: Szczegóły błędu (opcjonalne)
+
+    Flashcard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        front:
+          type: string
+          maxLength: 200
+        back:
+          type: string
+          maxLength: 500
+        source:
+          type: string
+          enum: [MANUAL, AI]
+        user_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - front
+        - back
+        - source
+        - user_id
+        - created_at
+
+    CreateFlashcardCommand:
+      type: object
+      properties:
+        front:
+          type: string
+          maxLength: 200
+          minLength: 1
+        back:
+          type: string
+          maxLength: 500
+          minLength: 1
+      required:
+        - front
+        - back
+
+    UpdateFlashcardCommand:
+      type: object
+      properties:
+        front:
+          type: string
+          maxLength: 200
+          minLength: 1
+        back:
+          type: string
+          maxLength: 500
+          minLength: 1
+      required:
+        - front
+        - back
+
+    PaginatedFlashcardsResponse:
+      type: object
+      properties:
+        flashcards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Flashcard"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            limit:
+              type: integer
+              minimum: 1
+            total:
+              type: integer
+              minimum: 0
+          required:
+            - page
+            - limit
+            - total
+      required:
+        - flashcards
+        - pagination
+
+security:
+  - BearerAuth: []
+
+paths:
+  /flashcards:
+    get:
+      summary: Pobierz listę fiszek
+      description: Zwraca paginowaną listę fiszek użytkownika z opcjonalnym filtrowaniem po źródle
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Numer strony
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Liczba elementów na stronie
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [AI, MANUAL]
+          description: Filtrowanie po źródle fiszki
+      responses:
+        "200":
+          description: Sukces
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedFlashcardsResponse"
+        "400":
+          description: Nieprawidłowe parametry zapytania
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Brak autoryzacji
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Błąd serwera
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      summary: Utwórz nową fiszkę
+      description: Tworzy nową fiszkę dla zalogowanego użytkownika
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFlashcardCommand"
+      responses:
+        "201":
+          description: Fiszka utworzona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Flashcard"
+        "400":
+          description: Nieprawidłowe dane wejściowe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Brak autoryzacji
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Błąd serwera
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /flashcards/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: ID fiszki
+
+    get:
+      summary: Pobierz szczegóły fiszki
+      description: Zwraca szczegółowe informacje o pojedynczej fiszce
+      responses:
+        "200":
+          description: Sukces
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Flashcard"
+        "400":
+          description: Nieprawidłowe ID fiszki
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Brak autoryzacji
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Fiszka nie znaleziona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Błąd serwera
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      summary: Aktualizuj fiszkę
+      description: Aktualizuje istniejącą fiszkę
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFlashcardCommand"
+      responses:
+        "200":
+          description: Fiszka zaktualizowana
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Flashcard"
+        "400":
+          description: Nieprawidłowe dane wejściowe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Brak autoryzacji
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Fiszka nie znaleziona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Błąd serwera
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Usuń fiszkę
+      description: Usuwa istniejącą fiszkę
+      responses:
+        "204":
+          description: Fiszka usunięta
+        "400":
+          description: Nieprawidłowe ID fiszki
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Brak autoryzacji
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Fiszka nie znaleziona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Błąd serwera
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

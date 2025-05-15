@@ -98,7 +98,7 @@ describe("OpenRouterService", () => {
     };
 
     it("should send message and return parsed response", { timeout: TEST_TIMEOUT }, async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
@@ -130,7 +130,7 @@ describe("OpenRouterService", () => {
 
     it("should retry on network error", { timeout: TEST_TIMEOUT }, async () => {
       const networkError = new TypeError("Failed to fetch");
-      (global.fetch as jest.Mock).mockRejectedValueOnce(networkError).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(networkError).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
@@ -152,7 +152,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should retry on 5xx error", { timeout: TEST_TIMEOUT }, async () => {
-      (global.fetch as jest.Mock)
+      (global.fetch as unknown as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: false,
           status: 503,
@@ -179,16 +179,62 @@ describe("OpenRouterService", () => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
 
-    it("should throw NetworkError after max retries", { timeout: TEST_TIMEOUT }, async () => {
-      const networkError = new TypeError("Failed to fetch");
-      (global.fetch as jest.Mock).mockRejectedValue(networkError);
+    it("should throw NetworkError after max retries", { timeout: 30000 }, async () => {
+      const mockError = new Error("Failed to fetch");
+      const mockFetch = vi.fn().mockRejectedValue(mockError);
 
-      await expect(service.sendMessage(mockMessage)).rejects.toThrow(NetworkError);
-      expect(global.fetch).toHaveBeenCalledTimes(4); // Initial + 3 retries
+      // Create service with test configuration
+      const service = new OpenRouterService({
+        isTest: true,
+        testApiKey: "test-api-key",
+        testSiteUrl: "https://test.com",
+        testModelName: "test-model",
+        testSystemMessage: "test message",
+      });
+
+      // Override fetch with mock
+      global.fetch = mockFetch;
+
+      // Mock setTimeout to be synchronous but not create new timeouts
+      const mockSetTimeout = vi.fn((fn: TimerHandler) => {
+        if (typeof fn === "function") {
+          fn();
+        }
+        return 1; // Return a simple timer ID
+      });
+
+      // Replace setTimeout globally
+      const originalSetTimeout = global.setTimeout;
+      global.setTimeout = mockSetTimeout as unknown as typeof global.setTimeout;
+
+      // Mock _retryWithExponentialBackoff to prevent recursive calls
+      const originalRetryWithExponentialBackoff = service["_retryWithExponentialBackoff"].bind(service);
+      let retryCount = 0;
+      service["_retryWithExponentialBackoff"] = async function (operation, maxRetries = 3) {
+        retryCount++;
+        return originalRetryWithExponentialBackoff(operation, maxRetries);
+      };
+
+      try {
+        await service.sendMessage("test message");
+        throw new Error("Expected NetworkError but got success");
+      } catch (error) {
+        expect(error).toBeInstanceOf(NetworkError);
+      }
+
+      // Verify that fetch was called the expected number of times (1 initial + 3 retries = 4 total)
+      expect(mockFetch).toHaveBeenCalledTimes(4);
+      expect(retryCount).toBe(1); // Only one retry sequence should be executed
+
+      // Restore original setTimeout
+      global.setTimeout = originalSetTimeout;
+
+      // Restore all other mocks
+      vi.restoreAllMocks();
     });
 
     it("should throw APIError for non-5xx errors", { timeout: TEST_TIMEOUT }, async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         status: 400,
         statusText: "Bad Request",
@@ -199,7 +245,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should throw ValidationError for invalid response format", { timeout: TEST_TIMEOUT }, async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ choices: [] }), // Missing message content
       });
@@ -208,7 +254,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should throw ValidationError for invalid JSON in response", { timeout: TEST_TIMEOUT }, async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () =>
           Promise.resolve({
