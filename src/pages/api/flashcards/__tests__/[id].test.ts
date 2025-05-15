@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT, DELETE } from "../[id]";
 import { FlashcardsService } from "../../../../lib/services/flashcards.service";
 import type { User } from "@supabase/supabase-js";
+import { Logger } from "../../../../lib/logger";
+import type { APIContext } from "astro";
+
+const logger = new Logger("TEST");
 
 // Import the actual module to get the real FlashcardError class
 const { FlashcardError } = await vi.importActual<typeof import("../../../../lib/services/flashcards.service")>(
@@ -12,6 +16,15 @@ const { FlashcardError } = await vi.importActual<typeof import("../../../../lib/
 const createFlashcardError = (message: string, code: "VALIDATION" | "DATABASE" | "GENERATION" | "UNKNOWN") => {
   return new FlashcardError(message, null, code);
 };
+
+interface MockContext {
+  params: { id?: string };
+  locals: {
+    user: User;
+    supabase: Record<string, unknown>;
+  };
+  request?: Request;
+}
 
 describe("Flashcard [id] endpoints", () => {
   const mockUserId = "test-user-id";
@@ -29,7 +42,7 @@ describe("Flashcard [id] endpoints", () => {
     back: "Updated back",
   };
 
-  const mockContext = {
+  const mockContext: MockContext = {
     params: { id: mockFlashcardId },
     locals: {
       user: { id: mockUserId } as User,
@@ -45,7 +58,7 @@ describe("Flashcard [id] endpoints", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    console.log("[TEST SETUP] Initializing test with mock data:", {
+    logger.debug("[TEST SETUP] Initializing test with mock data:", {
       mockUserId,
       mockFlashcardId,
       isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(mockFlashcardId),
@@ -73,7 +86,7 @@ describe("Flashcard [id] endpoints", () => {
 
       const response = await GET({
         ...mockContext,
-      } as any);
+      } as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(200);
@@ -86,7 +99,7 @@ describe("Flashcard [id] endpoints", () => {
 
       const response = await GET({
         ...mockContext,
-      } as any);
+      } as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(404);
@@ -97,7 +110,7 @@ describe("Flashcard [id] endpoints", () => {
       const response = await GET({
         params: { id: "not-a-uuid" },
         locals: mockContext.locals,
-      } as any);
+      } as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(400);
@@ -108,7 +121,7 @@ describe("Flashcard [id] endpoints", () => {
       const response = await GET({
         params: {},
         locals: mockContext.locals,
-      } as any);
+      } as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(400);
@@ -127,7 +140,7 @@ describe("Flashcard [id] endpoints", () => {
           method: "PUT",
           body: JSON.stringify(updateCommand),
         }),
-      } as any);
+      } as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(200);
@@ -141,7 +154,7 @@ describe("Flashcard [id] endpoints", () => {
           method: "PUT",
           body: "invalid-json",
         }),
-      } as any);
+      } as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(400);
@@ -153,7 +166,7 @@ describe("Flashcard [id] endpoints", () => {
     it("should return 204 when deletion is successful", async () => {
       mockService.deleteFlashcard.mockResolvedValue(undefined);
 
-      const response = await DELETE(mockContext as any);
+      const response = await DELETE(mockContext as APIContext);
 
       expect(response.status).toBe(204);
     });
@@ -161,7 +174,7 @@ describe("Flashcard [id] endpoints", () => {
     it("should return 404 when deleting non-existent flashcard", async () => {
       mockService.deleteFlashcard.mockRejectedValue(createFlashcardError("Flashcard not found", "DATABASE"));
 
-      const response = await DELETE(mockContext as any);
+      const response = await DELETE(mockContext as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(404);
@@ -171,7 +184,7 @@ describe("Flashcard [id] endpoints", () => {
     it("should return 403 when user tries to delete another user's flashcard", async () => {
       mockService.deleteFlashcard.mockRejectedValue(createFlashcardError("Access denied", "VALIDATION"));
 
-      const response = await DELETE(mockContext as any);
+      const response = await DELETE(mockContext as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(403);

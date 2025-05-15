@@ -1,12 +1,17 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import { FlashcardsService, FlashcardError } from "../../../lib/services/flashcards.service";
+import { FlashcardError } from "../../../lib/services/flashcards.service";
 import { initializeServices } from "../../../lib/services";
 import { Logger } from "../../../lib/logger";
 
 const logger = new Logger("API");
 
-const validateUser = (locals: Record<string, any>) => {
+interface Locals {
+  user: { id: string } | null;
+  [key: string]: unknown;
+}
+
+const validateUser = (locals: Locals) => {
   const user = locals.user;
   if (!user) {
     throw new Error("User not authenticated");
@@ -31,7 +36,7 @@ const validateId = (id: string | undefined) => {
 
   // Validate UUID format
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-  console.log("[Schema Validation] Validating UUID:", {
+  logger.debug("[Schema Validation] Validating UUID:", {
     value: id,
     matches: isValidUUID,
     pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
@@ -114,6 +119,7 @@ export const PUT: APIRoute = async ({ params, locals, request }) => {
     try {
       updateCommand = await request.json();
     } catch (error) {
+      logger.error("Failed to parse request body", { error });
       return new Response(JSON.stringify({ error: "Invalid request body" }), {
         status: 400,
         headers: {

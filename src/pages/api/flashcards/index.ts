@@ -6,6 +6,9 @@ import { FlashcardGeneratorService } from "../../../lib/services/flashcard-gener
 import { FlashcardError } from "../../../lib/services/flashcards.service";
 import { OpenRouterService } from "../../../lib/services/openrouter.service";
 import type { User } from "@supabase/supabase-js";
+import { Logger } from "../../../lib/logger";
+
+const logger = new Logger("API");
 
 export const prerender = false;
 
@@ -49,7 +52,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    console.error("Error in GET /api/flashcards:", error);
+    logger.error("Error in GET /api/flashcards:", { error });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -63,7 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     try {
       body = await request.json();
     } catch (error) {
-      console.error("Error parsing request body:", error);
+      logger.error("Error parsing request body:", { error });
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },

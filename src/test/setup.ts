@@ -2,11 +2,14 @@ import { afterEach, beforeAll, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import "./matchers";
+import { Logger } from "../lib/logger";
+
+const logger = new Logger("TEST");
 
 // Configure global test environment
 beforeAll(() => {
   // Add logging to check environment variables
-  console.log("Test Environment Variables:", {
+  logger.debug("Test Environment Variables:", {
     SUPABASE_URL: process.env.SUPABASE_URL,
     PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
     NODE_ENV: process.env.NODE_ENV,

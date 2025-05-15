@@ -280,7 +280,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     let currentAttempt = 0;
     const retryId = Math.random().toString(36).substring(7);
 
-    console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Starting retry sequence:`, {
+    logger.debug(`[Retry ${retryId}] Starting retry sequence:`, {
       maxRetries: this._maxRetries,
       maxAttempts,
       retryCount,
@@ -290,7 +290,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
     });
 
     while (currentAttempt < maxAttempts) {
-      console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Attempt ${currentAttempt + 1}/${maxAttempts}`, {
+      logger.debug(`[Retry ${retryId}] Attempt ${currentAttempt + 1}/${maxAttempts}`, {
         currentAttempt,
         retryCount,
         delay: currentAttempt > 0 ? Math.pow(2, currentAttempt - 1) * 1000 : 0,
@@ -298,14 +298,12 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
 
       try {
         const result = await operation();
-        console.log(
-          `[DEBUG Retry ${retryId} ${new Date().toISOString()}] Operation successful on attempt ${currentAttempt + 1}`
-        );
+        logger.debug(`[Retry ${retryId}] Operation successful on attempt ${currentAttempt + 1}`);
         return result;
       } catch (error) {
         currentAttempt++;
 
-        console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Error on attempt ${currentAttempt}:`, {
+        logger.debug(`[Retry ${retryId}] Error on attempt ${currentAttempt}:`, {
           error: error instanceof Error ? error.message : "Unknown error",
           type: error?.constructor?.name,
           isNetworkError: error instanceof Error && error.message.includes("Failed to fetch"),
@@ -329,7 +327,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         }
 
         if (currentAttempt === maxAttempts) {
-          console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Max retries reached, throwing final error`);
+          logger.debug(`[Retry ${retryId}] Max retries reached, throwing final error`);
 
           // Ensure we're throwing the right error type
           if (error instanceof Error && error.message.includes("Failed to fetch")) {
@@ -346,7 +344,7 @@ Remember: You MUST generate at least 3-5 high-quality flashcards for the given t
         // Wait before next retry using exponential backoff
         const delay = Math.pow(2, currentAttempt - 1) * 1000;
         if (currentAttempt < maxAttempts) {
-          console.log(`[DEBUG Retry ${retryId} ${new Date().toISOString()}] Waiting ${delay}ms before next attempt`);
+          logger.debug(`[Retry ${retryId}] Waiting ${delay}ms before next attempt`);
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { Logger } from "../logger";
+
+const logger = new Logger("Schema");
 
 export const createFlashcardSchema = z.object({
   front: z.string().min(1).max(200),
@@ -18,7 +21,7 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a
 
 export const flashcardIdSchema = z.object({
   id: z.string().refine((val) => {
-    console.log("[Schema Validation] Validating UUID:", {
+    logger.debug("[Schema Validation] Validating UUID:", {
       value: val,
       matches: uuidRegex.test(val),
       pattern: uuidRegex.source,
