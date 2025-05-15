@@ -8,10 +8,14 @@ const logger = new Logger("TEST");
 
 // Configure global test environment
 beforeAll(() => {
+  // Set required environment variables for tests
+  process.env.PUBLIC_OPENROUTER_API_KEY = "test-api-key";
+
   // Add logging to check environment variables
   logger.debug("Test Environment Variables:", {
     SUPABASE_URL: process.env.SUPABASE_URL,
     PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
+    PUBLIC_OPENROUTER_API_KEY: process.env.PUBLIC_OPENROUTER_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     VITEST: process.env.VITEST,
     TEST_MODE: process.env.TEST_MODE,
