@@ -54,6 +54,16 @@ jobs:
       - name: Run unit tests with coverage
         run: npm run test:coverage
         env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUBLIC_OPENROUTER_API_KEY: ${{ secrets.PUBLIC_OPENROUTER_API_KEY }}
+          DEFAULT_USER_EMAIL: ${{ secrets.DEFAULT_USER_EMAIL }}
+          DEFAULT_USER_ID: ${{ secrets.DEFAULT_USER_ID }}
+          DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
+          NODE_ENV: test
+          PUBLIC_SITE_URL: "http://localhost:3000"
+          PUBLIC_APP_TITLE: "10xDevsCards"
           ESLINT_MAX_WARNINGS: 50
 
       - name: Upload unit test coverage

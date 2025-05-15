@@ -39,6 +39,83 @@ beforeAll(() => {
     }
     originalConsole.error(...args);
   });
+
+  // Mock Supabase client
+  vi.mock("@supabase/supabase-js", () => {
+    class AuthError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = "AuthError";
+      }
+    }
+
+    return {
+      createClient: vi.fn(() => ({
+        auth: {
+          getUser: vi.fn(),
+          signIn: vi.fn(),
+          signOut: vi.fn(),
+        },
+        from: vi.fn(() => ({
+          select: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
+          delete: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          range: vi.fn().mockReturnThis(),
+          count: vi.fn().mockReturnThis(),
+        })),
+      })),
+      AuthError,
+    };
+  });
+
+  // Mock Supabase SSR
+  vi.mock("@supabase/ssr", () => {
+    return {
+      createServerClient: vi.fn(() => ({
+        auth: {
+          getUser: vi.fn(),
+          signIn: vi.fn(),
+          signOut: vi.fn(),
+        },
+        from: vi.fn(() => ({
+          select: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
+          delete: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          range: vi.fn().mockReturnThis(),
+          count: vi.fn().mockReturnThis(),
+        })),
+      })),
+      createBrowserClient: vi.fn(() => ({
+        auth: {
+          getUser: vi.fn(),
+          signIn: vi.fn(),
+          signOut: vi.fn(),
+        },
+        from: vi.fn(() => ({
+          select: vi.fn().mockReturnThis(),
+          insert: vi.fn().mockReturnThis(),
+          update: vi.fn().mockReturnThis(),
+          delete: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          range: vi.fn().mockReturnThis(),
+          count: vi.fn().mockReturnThis(),
+        })),
+      })),
+    };
+  });
 });
 
 // Automatically clean up after each test
