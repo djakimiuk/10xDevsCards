@@ -49,71 +49,65 @@ beforeAll(() => {
       }
     }
 
-    return {
-      createClient: vi.fn(() => ({
-        auth: {
-          getUser: vi.fn(),
-          signIn: vi.fn(),
-          signOut: vi.fn(),
-        },
-        from: vi.fn(() => ({
-          select: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockReturnThis(),
-          update: vi.fn().mockReturnThis(),
-          delete: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          range: vi.fn().mockReturnThis(),
-          count: vi.fn().mockReturnThis(),
-        })),
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
+        signInWithPassword: vi.fn(),
+        signUp: vi.fn(),
+        resetPasswordForEmail: vi.fn(),
+        updateUser: vi.fn(),
+      },
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        count: vi.fn().mockReturnThis(),
       })),
+    };
+
+    return {
+      createClient: vi.fn(() => mockSupabaseClient),
       AuthError,
     };
   });
 
   // Mock Supabase SSR
   vi.mock("@supabase/ssr", () => {
+    const mockSupabaseClient = {
+      auth: {
+        getUser: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
+        signInWithPassword: vi.fn(),
+        signUp: vi.fn(),
+        resetPasswordForEmail: vi.fn(),
+        updateUser: vi.fn(),
+      },
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        count: vi.fn().mockReturnThis(),
+      })),
+    };
+
     return {
-      createServerClient: vi.fn(() => ({
-        auth: {
-          getUser: vi.fn(),
-          signIn: vi.fn(),
-          signOut: vi.fn(),
-        },
-        from: vi.fn(() => ({
-          select: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockReturnThis(),
-          update: vi.fn().mockReturnThis(),
-          delete: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          range: vi.fn().mockReturnThis(),
-          count: vi.fn().mockReturnThis(),
-        })),
-      })),
-      createBrowserClient: vi.fn(() => ({
-        auth: {
-          getUser: vi.fn(),
-          signIn: vi.fn(),
-          signOut: vi.fn(),
-        },
-        from: vi.fn(() => ({
-          select: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockReturnThis(),
-          update: vi.fn().mockReturnThis(),
-          delete: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          range: vi.fn().mockReturnThis(),
-          count: vi.fn().mockReturnThis(),
-        })),
-      })),
+      createServerClient: vi.fn(() => mockSupabaseClient),
+      createBrowserClient: vi.fn(() => mockSupabaseClient),
     };
   });
 });
