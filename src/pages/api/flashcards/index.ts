@@ -1,12 +1,12 @@
 import type { APIRoute } from "astro";
-import { FlashcardsService } from "../../../lib/services/flashcards.service";
-import { createFlashcardSchema, flashcardQuerySchema } from "../../../lib/schemas/flashcard.schema";
+import { FlashcardsService } from "@/lib/services/flashcards.service";
+import { createFlashcardSchema, flashcardQuerySchema } from "@/lib/schemas/flashcard.schema";
 import { ZodError } from "zod";
-import { FlashcardGeneratorService } from "../../../lib/services/flashcard-generator.service";
-import { FlashcardError } from "../../../lib/services/flashcards.service";
-import { OpenRouterService } from "../../../lib/services/openrouter.service";
+import { FlashcardGeneratorService } from "@/lib/services/flashcard-generator.service";
+import { FlashcardError } from "@/lib/services/flashcards.service";
+import { OpenRouterService } from "@/lib/services/openrouter.service";
 import type { User } from "@supabase/supabase-js";
-import { Logger } from "../../../lib/logger";
+import { Logger } from "@/lib/logger";
 
 const logger = new Logger("API");
 

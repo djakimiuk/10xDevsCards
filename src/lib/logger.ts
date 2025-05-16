@@ -1,72 +1,72 @@
 import { LogLevel } from "./types";
 
 export class Logger {
-  private static instance: Logger;
-  private logLevel: LogLevel = LogLevel.INFO;
+  private readonly context: string;
 
-  // Private constructor to enforce singleton pattern
-  constructor(private context?: string) {
-    // No initialization needed
+  constructor(context: string) {
+    this.context = context;
   }
 
-  static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
-    }
-    return Logger.instance;
-  }
-
-  setLogLevel(level: LogLevel) {
-    this.logLevel = level;
-  }
-
-  private shouldLog(level: LogLevel): boolean {
-    const levels: LogLevel[] = [LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG];
-    return levels.indexOf(level) <= levels.indexOf(this.logLevel);
-  }
-
-  private formatMessage(level: LogLevel, message: string, meta?: unknown): string {
+  private formatMessage(level: LogLevel, message: string, data?: Record<string, unknown>, error?: Error): void {
     const timestamp = new Date().toISOString();
-    const contextStr = this.context ? `[${this.context}] ` : "";
-    const metaStr = meta ? ` ${JSON.stringify(meta)}` : "";
-    return `[${timestamp}] ${level}: ${contextStr}${message}${metaStr}`;
-  }
+    const logData = {
+      timestamp,
+      level,
+      context: this.context,
+      message,
+      ...data,
+      ...(error && {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+      }),
+    };
 
-  error(message: string, meta?: unknown, error?: Error) {
-    if (this.shouldLog(LogLevel.ERROR)) {
-      const formattedMessage = this.formatMessage(LogLevel.ERROR, message, meta);
-      // Use console.error for errors as they need to be visible in production
-      // eslint-disable-next-line no-console
-      console.error(formattedMessage, error);
+    // In development, we'll console.log for better DevTools formatting
+    if (import.meta.env.DEV) {
+      const logFn = this.getConsoleMethod(level);
+      logFn(`[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message}`, data || "", error || "");
+    } else {
+      // In production, we'll JSON.stringify for better log aggregation
+      console.log(JSON.stringify(logData));
     }
   }
 
-  warn(message: string, meta?: unknown) {
-    if (this.shouldLog(LogLevel.WARN)) {
-      const formattedMessage = this.formatMessage(LogLevel.WARN, message, meta);
-      // Use console.warn for warnings as they might be important in production
-      // eslint-disable-next-line no-console
-      console.warn(formattedMessage);
+  private getConsoleMethod(level: LogLevel): typeof console.log {
+    switch (level) {
+      case LogLevel.ERROR:
+        return console.error;
+      case LogLevel.WARN:
+        return console.warn;
+      case LogLevel.INFO:
+        return console.info;
+      case LogLevel.DEBUG:
+        return console.debug;
+      default:
+        return console.log;
     }
   }
 
-  info(message: string, meta?: unknown) {
-    if (this.shouldLog(LogLevel.INFO)) {
-      const formattedMessage = this.formatMessage(LogLevel.INFO, message, meta);
-      // Use console.info for informational messages
-      // eslint-disable-next-line no-console
-      console.info(formattedMessage);
-    }
+  error(message: string, data?: Record<string, unknown>, error?: Error): void {
+    this.formatMessage(LogLevel.ERROR, message, data, error);
   }
 
-  debug(message: string, meta?: unknown) {
-    if (this.shouldLog(LogLevel.DEBUG)) {
-      const formattedMessage = this.formatMessage(LogLevel.DEBUG, message, meta);
-      // Use console.debug for debug messages that should be hidden in production
-      // eslint-disable-next-line no-console
-      console.debug(formattedMessage);
+  warn(message: string, data?: Record<string, unknown>): void {
+    this.formatMessage(LogLevel.WARN, message, data);
+  }
+
+  info(message: string, data?: Record<string, unknown>): void {
+    this.formatMessage(LogLevel.INFO, message, data);
+  }
+
+  debug(message: string, data?: Record<string, unknown>): void {
+    if (import.meta.env.DEV) {
+      console.debug(`[${this.context}] ${message}`, data || "");
     }
   }
 }
 
-export const logger = Logger.getInstance();
+// Export a default logger instance for convenience
+export const logger = new Logger("App");

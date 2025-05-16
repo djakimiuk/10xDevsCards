@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { loginUser, registerUser, sendPasswordResetEmail, updateUserPassword, logoutUser } from "../auth";
+import { loginUser, registerUser, sendPasswordResetEmail, updateUserPassword, logoutUser, getUser } from "../auth";
 import { type User, type Session, AuthError } from "@supabase/supabase-js";
 import { createBrowserClient } from "@supabase/ssr";
-import { logger } from "@/lib/logger";
 
 // Mock @supabase/ssr module
 vi.mock("@supabase/ssr", () => ({
@@ -17,6 +16,7 @@ interface MockAuth {
   updateUser: ReturnType<typeof vi.fn>;
   signOut: ReturnType<typeof vi.fn>;
   getSession: ReturnType<typeof vi.fn>;
+  getUser: ReturnType<typeof vi.fn>;
 }
 
 interface MockSupabase {
@@ -62,6 +62,7 @@ describe("Auth functions", () => {
         updateUser: vi.fn(),
         signOut: vi.fn(),
         getSession: vi.fn(),
+        getUser: vi.fn(),
       },
     };
 
@@ -303,9 +304,6 @@ describe("Auth functions", () => {
 
   describe("logoutUser", () => {
     it("should sign out user successfully and redirect", async () => {
-      logger.debug("Setting up successful logout test");
-
-      // Setup mocks
       supabase.auth.getSession.mockResolvedValue({
         data: { session: null },
         error: null,
@@ -315,51 +313,53 @@ describe("Auth functions", () => {
         error: null,
       });
 
-      logger.debug("Mock setup complete", {
-        getSessionMock: supabase.auth.getSession.mock.calls,
-        signOutMock: supabase.auth.signOut.mock.calls,
-      });
-
       await logoutUser();
-
-      logger.debug("Verifying logout test", {
-        signOutCalled: supabase.auth.signOut.mock.calls.length,
-        redirectUrl: window.location.href,
-      });
 
       expect(supabase.auth.signOut).toHaveBeenCalled();
       expect(window.location.href).toBe("/auth/login");
     });
 
     it("should throw friendly error on sign out failure", async () => {
-      logger.debug("Setting up failed logout test");
-
-      // Setup mocks
       supabase.auth.getSession.mockResolvedValue({
         data: { session: null },
         error: null,
       });
 
       const mockError = new AuthError("Logout failed");
-      logger.debug("Creating mock error for signOut", {
-        errorType: mockError.constructor.name,
-        errorMessage: mockError.message,
-        isAuthError: mockError instanceof AuthError,
-        error: mockError,
-      });
 
       supabase.auth.signOut.mockResolvedValue({
         error: mockError,
       });
 
-      logger.debug("Mock setup complete", {
-        getSessionMock: supabase.auth.getSession.mock.calls,
-        signOutMock: supabase.auth.signOut.mock.calls,
-        mockError,
-      });
-
-      // Verify that the function throws an error, without checking the exact message
       await expect(logoutUser()).rejects.toThrow();
+    });
+  });
+
+  describe("getUser", () => {
+    it("should return null when no user is authenticated", async () => {
+      supabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+      const result = await getUser(supabase);
+      expect(result).toBeNull();
+    });
+
+    it("should return user data when user is authenticated", async () => {
+      const mockUser = {
+        id: "123",
+        email: "test@example.com",
+      };
+
+      supabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
+
+      const result = await getUser(supabase);
+      expect(result).toEqual(mockUser);
+    });
+
+    it("should return null when there is an error", async () => {
+      supabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: new Error("Auth error") });
+
+      const result = await getUser(supabase);
+      expect(result).toBeNull();
     });
   });
 });

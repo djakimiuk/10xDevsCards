@@ -22,7 +22,7 @@ export function BulkSaveActions({
     <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t" data-test-id="bulk-save-actions">
       <Button onClick={onSaveAll} disabled={isDisabled} className="flex-1" data-test-id="save-all-button">
         <SaveIcon className="w-4 h-4 mr-2" />
-        {isBulkSaving ? "Saving..." : "Save All"}
+        {isBulkSaving ? "Zapisywanie..." : "Zapisz wszystkie"}
       </Button>
       <Button
         onClick={onSaveAccepted}
@@ -32,7 +32,7 @@ export function BulkSaveActions({
         data-test-id="save-accepted-button"
       >
         <CheckSquareIcon className="w-4 h-4 mr-2" />
-        {isBulkSaving ? "Saving..." : "Save Accepted"}
+        {isBulkSaving ? "Zapisywanie..." : "Zapisz zaakceptowane"}
       </Button>
     </div>
   );

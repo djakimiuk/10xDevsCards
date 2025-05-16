@@ -1,7 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { logger } from "./logger";
+import { logger } from "@/lib/logger";
 import type { Database } from "@/db/database.types";
 import { AuthError } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Mapowanie błędów Supabase na przyjazne komunikaty
 const friendlyAuthErrors: Record<string, string> = {
@@ -250,4 +251,28 @@ export async function updateUserPassword(newPassword: string, confirmPassword: s
   }
 
   window.location.href = "/dashboard";
+}
+
+/**
+ * Pobiera aktualnie zalogowanego użytkownika
+ * @param supabase - klient Supabase
+ * @returns Promise<User | null>
+ */
+export async function getUser(supabase: SupabaseClient<Database>) {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error) {
+      logger.debug("Error getting user:", { error });
+      return null;
+    }
+
+    return user;
+  } catch (error) {
+    logger.debug("Unexpected error getting user:", { error });
+    return null;
+  }
 }

@@ -23,19 +23,19 @@ export function SourceTextInput({
     <div className="space-y-4" data-test-id="source-text-container">
       <div className="space-y-2">
         <label htmlFor="source-text" className="text-sm font-medium">
-          Source Text
+          Tekst źródłowy
         </label>
         <Textarea
           id="source-text"
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
-          placeholder="Paste your text here (min. 100, max. 10000 characters)..."
+          placeholder="Wklej swój tekst tutaj (min. 100, max. 10000 znaków)..."
           disabled={isLoading}
           className="min-h-[200px] font-mono"
           data-test-id="source-text-input"
         />
         <p className="text-xs text-muted-foreground" data-test-id="character-count">
-          {charCount}/10000 characters
+          {charCount}/10000 znaków
         </p>
       </div>
 
@@ -46,7 +46,7 @@ export function SourceTextInput({
       )}
 
       <Button onClick={onGenerateSubmit} disabled={isLoading || !!validationError} data-test-id="generate-button">
-        {isLoading ? "Generating..." : "Generate Flashcards"}
+        {isLoading ? "Generowanie..." : "Wygeneruj fiszki"}
       </Button>
     </div>
   );

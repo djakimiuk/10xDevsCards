@@ -67,6 +67,15 @@ export function CandidateCard({
     }
   };
 
+  const formattedDate = new Date(candidate.createdAt).toLocaleString("pl-PL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
   return (
     <Card
       className={`relative ${isSaved || isRejected ? "opacity-50" : ""}`}
@@ -74,19 +83,19 @@ export function CandidateCard({
     >
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Flashcard
+          Fiszka
           {(isAccepted || isRejected || isSaved) && (
             <span
               className={`text-sm font-normal ${isRejected ? "text-destructive" : ""}`}
               data-test-id={`candidate-status-${candidate.id}`}
             >
-              {isAccepted && "Marked for acceptance"}
-              {isRejected && "Rejected"}
-              {isSaved && "Saved"}
+              {isAccepted && "Zaakceptowana"}
+              {isRejected && "Odrzucona"}
+              {isSaved && "Zapisana"}
             </span>
           )}
         </CardTitle>
-        <CardDescription>Created: {new Date(candidate.createdAt).toLocaleString()}</CardDescription>
+        <CardDescription>Utworzono: {formattedDate}</CardDescription>
       </CardHeader>
 
       {isEditing ? (
@@ -105,7 +114,7 @@ export function CandidateCard({
       ) : (
         <CardContent className="space-y-4">
           <div>
-            <h3 className="text-sm font-medium mb-2">Front</h3>
+            <h3 className="text-sm font-medium mb-2">Przód</h3>
             <pre
               className="whitespace-pre-wrap font-mono text-sm bg-muted p-2 rounded-md"
               data-test-id={`candidate-front-${candidate.id}`}
@@ -114,7 +123,7 @@ export function CandidateCard({
             </pre>
           </div>
           <div>
-            <h3 className="text-sm font-medium mb-2">Back</h3>
+            <h3 className="text-sm font-medium mb-2">Tył</h3>
             <pre
               className="whitespace-pre-wrap font-mono text-sm bg-muted p-2 rounded-md"
               data-test-id={`candidate-back-${candidate.id}`}
@@ -141,7 +150,7 @@ export function CandidateCard({
             data-test-id={`candidate-accept-button-${candidate.id}`}
           >
             <CheckIcon className="w-4 h-4 mr-1" />
-            {isAccepted ? "Accepted" : "Accept"}
+            {isAccepted ? "Zaakceptowana" : "Akceptuj"}
           </Button>
 
           <Button
@@ -152,7 +161,7 @@ export function CandidateCard({
             data-test-id={`candidate-edit-button-${candidate.id}`}
           >
             <PencilIcon className="w-4 h-4 mr-1" />
-            Edit
+            Edytuj
           </Button>
 
           <AlertDialog open={isConfirmingReject} onOpenChange={setIsConfirmingReject}>
@@ -165,22 +174,22 @@ export function CandidateCard({
                 data-test-id={`candidate-reject-button-${candidate.id}`}
               >
                 <XIcon className="w-4 h-4 mr-1" />
-                {isRejected ? "Rejected" : "Reject"}
+                {isRejected ? "Odrzucona" : "Odrzuć"}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent data-test-id="reject-confirmation-dialog">
               <AlertDialogHeader>
-                <AlertDialogTitle>Reject Flashcard?</AlertDialogTitle>
+                <AlertDialogTitle>Odrzucić fiszkę?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to reject this flashcard? This action can be undone before saving.
+                  Czy na pewno chcesz odrzucić tę fiszkę? Tę akcję można cofnąć przed zapisaniem.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setIsConfirmingReject(false)} data-test-id="reject-cancel-button">
-                  Cancel
+                  Anuluj
                 </AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmReject} data-test-id="reject-confirm-button">
-                  Reject
+                  Odrzuć
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

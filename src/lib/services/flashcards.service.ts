@@ -170,65 +170,43 @@ export class FlashcardsService {
     }
   }
 
-  async updateFlashcard(id: string, command: UpdateFlashcardCommand, userId: string = DEFAULT_USER_ID) {
-    try {
-      this._logger.info("Updating flashcard", { id, userId, command });
+  async updateFlashcard(id: string, data: UpdateFlashcardCommand, userId: string): Promise<FlashcardDTO> {
+    this._logger.debug("Updating flashcard", { id, data, userId });
 
-      // First check if the flashcard exists and belongs to the user
-      const { data: existingCard, error: checkError } = await this.supabase
-        .from("flashcards")
-        .select("id")
-        .eq("id", id)
-        .eq("user_id", userId)
-        .single();
+    const { data: flashcard, error } = await this.supabase
+      .from("flashcards")
+      .update({
+        front: data.front,
+        back: data.back,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select()
+      .single();
 
-      if (checkError) {
-        if (checkError.code === "PGRST116") {
-          throw new FlashcardError("Flashcard not found", checkError, "DATABASE");
-        }
-        throw new FlashcardError("Failed to check flashcard access", checkError, "DATABASE");
+    this._logger.debug("Update response:", { flashcard, error });
+
+    if (error) {
+      this._logger.error("Error updating flashcard:", { error });
+      if (error.code === "PGRST116") {
+        throw new FlashcardError("Flashcard not found", error, "DATABASE");
       }
-
-      if (!existingCard) {
-        throw new FlashcardError("Access denied", null, "VALIDATION");
-      }
-
-      const { data, error } = await this.supabase
-        .from("flashcards")
-        .update({
-          front: command.front,
-          back: command.back,
-        })
-        .eq("user_id", userId)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "PGRST116") {
-          throw new FlashcardError("Flashcard not found", error, "DATABASE");
-        }
-        this._logger.error(
-          "Database error while updating flashcard",
-          {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-          },
-          error
-        );
-        throw new FlashcardError("Failed to update flashcard in database", error, "DATABASE");
-      }
-
-      return data as FlashcardDTO;
-    } catch (error) {
-      if (error instanceof FlashcardError) {
-        throw error;
-      }
-      this._logger.error("Unexpected error while updating flashcard", {}, error as Error);
-      throw new FlashcardError("Unexpected error while updating flashcard", error);
+      throw new FlashcardError("Failed to update flashcard", error, "DATABASE");
     }
+
+    if (!flashcard) {
+      throw new FlashcardError("Failed to update flashcard", null, "DATABASE");
+    }
+
+    // Konwertuj dane z bazy na FlashcardDTO
+    return {
+      id: flashcard.id,
+      front: flashcard.front,
+      back: flashcard.back,
+      source: flashcard.source as "AI" | "MANUAL",
+      created_at: flashcard.created_at,
+    };
   }
 
   async deleteFlashcard(id: string, userId: string = DEFAULT_USER_ID) {

@@ -1,5 +1,4 @@
 import type { APIRoute } from "astro";
-import { z } from "zod";
 import { FlashcardError } from "../../../lib/services/flashcards.service";
 import { initializeServices } from "../../../lib/services";
 import { Logger } from "../../../lib/logger";
@@ -21,33 +20,19 @@ const validateUser = (locals: Locals) => {
 };
 
 const validateId = (id: string | undefined) => {
-  logger.debug("Validating ID", {
-    id,
-    type: typeof id,
-    length: id?.length,
-    isUUIDv4: id ? /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) : true,
-    schema: z.string().uuid(),
-  });
+  logger.debug("Validating ID", { id });
 
   if (!id) {
     logger.debug("Missing ID");
     throw new Error("Missing flashcard ID");
   }
 
-  // Validate UUID format
-  const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-  logger.debug("[Schema Validation] Validating UUID:", {
-    value: id,
-    matches: isValidUUID,
-    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-  });
-
-  if (!isValidUUID) {
-    logger.debug("UUID validation failed", { id });
-    throw new Error("Invalid flashcard ID");
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    logger.debug("Invalid UUID format", { id });
+    throw new Error("Invalid UUID format");
   }
 
-  logger.debug("UUID validation successful", { result: id });
   return id;
 };
 
@@ -71,7 +56,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     logger.debug("Error in GET", { error });
 
     if (error instanceof Error) {
-      if (error.message === "Missing flashcard ID" || error.message === "Invalid flashcard ID") {
+      if (error.message === "Missing flashcard ID" || error.message === "Invalid UUID format") {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400,
           headers: {
@@ -118,6 +103,7 @@ export const PUT: APIRoute = async ({ params, locals, request }) => {
     let updateCommand;
     try {
       updateCommand = await request.json();
+      logger.debug("PUT request body:", { updateCommand });
     } catch (error) {
       logger.error("Failed to parse request body", { error });
       return new Response(JSON.stringify({ error: "Invalid request body" }), {
@@ -130,6 +116,7 @@ export const PUT: APIRoute = async ({ params, locals, request }) => {
 
     const flashcardsService = initializeServices(locals);
     const updatedFlashcard = await flashcardsService.updateFlashcard(id, updateCommand, user.id);
+    logger.debug("Updated flashcard:", { updatedFlashcard });
 
     return new Response(JSON.stringify(updatedFlashcard), {
       status: 200,
@@ -141,7 +128,7 @@ export const PUT: APIRoute = async ({ params, locals, request }) => {
     logger.debug("Error in PUT", { error });
 
     if (error instanceof Error) {
-      if (error.message === "Missing flashcard ID" || error.message === "Invalid flashcard ID") {
+      if (error.message === "Missing flashcard ID" || error.message === "Invalid UUID format") {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400,
           headers: {
@@ -193,7 +180,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
     logger.debug("Error in DELETE", { error });
 
     if (error instanceof Error) {
-      if (error.message === "Missing flashcard ID" || error.message === "Invalid flashcard ID") {
+      if (error.message === "Missing flashcard ID" || error.message === "Invalid UUID format") {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400,
           headers: {

@@ -2,66 +2,74 @@ import { afterEach, beforeAll, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import "./matchers";
-import { Logger } from "../lib/logger";
-
-const logger = new Logger("TEST");
 
 // Configure global test environment
 beforeAll(() => {
   // Set required environment variables for tests
   process.env.PUBLIC_OPENROUTER_API_KEY = "test-api-key";
+  process.env.VITEST = "true";
+  process.env.TEST_MODE = "true";
 
-  // Add logging to check environment variables
-  logger.debug("Test Environment Variables:", {
-    SUPABASE_URL: process.env.SUPABASE_URL,
-    PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
-    PUBLIC_OPENROUTER_API_KEY: process.env.PUBLIC_OPENROUTER_API_KEY,
-    NODE_ENV: process.env.NODE_ENV,
-    VITEST: process.env.VITEST,
-    TEST_MODE: process.env.TEST_MODE,
-  });
+  // Mock window.location with proper type safety
+  const windowLocation = {
+    href: "",
+    pathname: "/",
+    search: "",
+    hash: "",
+    host: "localhost:3000",
+    hostname: "localhost",
+    protocol: "http:",
+    origin: "http://localhost:3000",
+    port: "3000",
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn(),
+  };
 
-  // Mock window.location
-  const windowLocation = { href: "" };
   Object.defineProperty(window, "location", {
     value: windowLocation,
     writable: true,
   });
 
-  // Mock console methods to catch warnings/errors
+  // Mock console methods with improved filtering
   const originalConsole = { ...console };
+  const whitelistedWarnings = ["test-warning-whitelist"];
+  const whitelistedErrors = ["test-error-whitelist"];
+
   vi.spyOn(console, "warn").mockImplementation((...args) => {
-    if (args[0]?.includes("test-warning-whitelist")) {
+    if (whitelistedWarnings.some((warning) => args[0]?.includes(warning))) {
       return;
     }
     originalConsole.warn(...args);
   });
 
   vi.spyOn(console, "error").mockImplementation((...args) => {
-    if (args[0]?.includes("test-error-whitelist")) {
+    if (whitelistedErrors.some((error) => args[0]?.includes(error))) {
       return;
     }
     originalConsole.error(...args);
   });
 
-  // Mock Supabase client
+  // Mock Supabase client with improved type safety and error handling
   vi.mock("@supabase/supabase-js", () => {
     class AuthError extends Error {
-      constructor(message: string) {
+      status: number;
+      constructor(message: string, status = 400) {
         super(message);
         this.name = "AuthError";
+        this.status = status;
       }
     }
 
     const mockSupabaseClient = {
       auth: {
-        getUser: vi.fn(),
-        signIn: vi.fn(),
-        signOut: vi.fn(),
-        signInWithPassword: vi.fn(),
-        signUp: vi.fn(),
-        resetPasswordForEmail: vi.fn(),
-        updateUser: vi.fn(),
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        signIn: vi.fn().mockResolvedValue({ data: null, error: null }),
+        signOut: vi.fn().mockResolvedValue({ error: null }),
+        signInWithPassword: vi.fn().mockResolvedValue({ data: null, error: null }),
+        signUp: vi.fn().mockResolvedValue({ data: null, error: null }),
+        resetPasswordForEmail: vi.fn().mockResolvedValue({ data: null, error: null }),
+        updateUser: vi.fn().mockResolvedValue({ data: null, error: null }),
       },
       from: vi.fn(() => ({
         select: vi.fn().mockReturnThis(),
@@ -69,7 +77,7 @@ beforeAll(() => {
         update: vi.fn().mockReturnThis(),
         delete: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         range: vi.fn().mockReturnThis(),
@@ -83,17 +91,17 @@ beforeAll(() => {
     };
   });
 
-  // Mock Supabase SSR
+  // Mock Supabase SSR with consistent behavior
   vi.mock("@supabase/ssr", () => {
     const mockSupabaseClient = {
       auth: {
-        getUser: vi.fn(),
-        signIn: vi.fn(),
-        signOut: vi.fn(),
-        signInWithPassword: vi.fn(),
-        signUp: vi.fn(),
-        resetPasswordForEmail: vi.fn(),
-        updateUser: vi.fn(),
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        signIn: vi.fn().mockResolvedValue({ data: null, error: null }),
+        signOut: vi.fn().mockResolvedValue({ error: null }),
+        signInWithPassword: vi.fn().mockResolvedValue({ data: null, error: null }),
+        signUp: vi.fn().mockResolvedValue({ data: null, error: null }),
+        resetPasswordForEmail: vi.fn().mockResolvedValue({ data: null, error: null }),
+        updateUser: vi.fn().mockResolvedValue({ data: null, error: null }),
       },
       from: vi.fn(() => ({
         select: vi.fn().mockReturnThis(),
@@ -101,7 +109,7 @@ beforeAll(() => {
         update: vi.fn().mockReturnThis(),
         delete: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         range: vi.fn().mockReturnThis(),
@@ -121,10 +129,24 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.resetAllMocks();
+  vi.restoreAllMocks();
 
   // Reset window.location
   window.location.href = "";
+  window.location.pathname = "/";
+  window.location.search = "";
+  window.location.hash = "";
 });
 
-// Configure global fetch mock
-global.fetch = vi.fn();
+// Configure global fetch mock with improved type safety
+global.fetch = vi.fn().mockImplementation(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(""),
+    blob: () => Promise.resolve(new Blob()),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    headers: new Headers(),
+  })
+);

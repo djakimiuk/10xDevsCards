@@ -1,0 +1,24 @@
+---
+import MainLayout from "../layouts/Layout.astro";
+import { FlashcardsPage } from "../components/flashcards/FlashcardsPage";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { ProfileButton } from "@/components/auth/ProfileButton";
+import { GenerateButton } from "@/components/auth/GenerateButton";
+---
+
+<MainLayout title="Flashcards | 10xDevs">
+  <div class="container mx-auto py-8">
+    <div class="flex flex-col gap-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold tracking-tight">Your Flashcards</h1>
+        <div class="flex gap-2">
+          <GenerateButton client:load />
+          <ProfileButton client:load />
+          <LogoutButton client:load />
+        </div>
+      </div>
+
+      <FlashcardsPage client:load />
+    </div>
+  </div>
+</MainLayout>

@@ -3,13 +3,15 @@ import Layout from "@/layouts/Layout.astro";
 import { GenerateView } from "@/components/generate/GenerateView";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { ProfileButton } from "@/components/auth/ProfileButton";
+import { FlashcardsButton } from "@/components/auth/FlashcardsButton";
 ---
 
-<Layout title="Generate Flashcards with AI">
+<Layout title="Generowanie Fiszek z AI">
   <div class="container mx-auto py-8">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold">Generate Flashcards with AI</h1>
+      <h1 class="text-3xl font-bold">Generowanie Fiszek z AI</h1>
       <div class="flex gap-2">
+        <FlashcardsButton client:load />
         <ProfileButton client:load />
         <LogoutButton client:load />
       </div>

@@ -14,7 +14,10 @@ try {
   const { user, error: userError } = await getSupabaseUser(supabase);
 
   if (userError) {
-    logger.error("Error getting user session:", userError);
+    logger.error("Error getting user session:", {
+      error: userError instanceof Error ? userError.message : String(userError),
+      code: userError instanceof Error ? userError.name : "UnknownError",
+    });
   }
 
   // If user is already logged in, redirect to generate
@@ -22,7 +25,10 @@ try {
     return Astro.redirect("/generate");
   }
 } catch (error) {
-  logger.error("Unexpected error in register page:", error);
+  logger.error("Unexpected error in register page:", {
+    error: error instanceof Error ? error.message : String(error),
+    code: error instanceof Error ? error.name : "UnknownError",
+  });
 }
 ---
 

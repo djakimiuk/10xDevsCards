@@ -1,29 +1,46 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, PUT, DELETE } from "../[id]";
-import { FlashcardsService } from "../../../../lib/services/flashcards.service";
+import { FlashcardsService } from "@/lib/services/flashcards.service";
 import type { User } from "@supabase/supabase-js";
-import { Logger } from "../../../../lib/logger";
+import { Logger } from "@/lib/logger";
 import type { APIContext } from "astro";
 
 const logger = new Logger("TEST");
 
-// Import the actual module to get the real FlashcardError class
-const { FlashcardError } = await vi.importActual<typeof import("../../../../lib/services/flashcards.service")>(
-  "../../../../lib/services/flashcards.service"
-);
+// Mock FlashcardsService
+vi.mock("@/lib/services/flashcards.service", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@/lib/services/flashcards.service")>();
+  const FlashcardsService = vi.fn();
+  FlashcardsService.prototype.getFlashcardById = vi.fn();
+  FlashcardsService.prototype.updateFlashcard = vi.fn();
+  FlashcardsService.prototype.deleteFlashcard = vi.fn();
+  return {
+    FlashcardsService,
+    FlashcardError: mod.FlashcardError,
+  };
+});
 
-// Helper function to create properly mocked FlashcardError
-const createFlashcardError = (message: string, code: "VALIDATION" | "DATABASE" | "GENERATION" | "UNKNOWN") => {
+// Helper function to create error with code
+const createError = async (message: string, code: "VALIDATION" | "DATABASE" | "GENERATION" | "UNKNOWN") => {
+  const { FlashcardError } = await import("@/lib/services/flashcards.service");
   return new FlashcardError(message, null, code);
 };
 
-interface MockContext {
-  params: { id?: string };
-  locals: {
-    user: User;
-    supabase: Record<string, unknown>;
-  };
+// Minimal mock of APIContext for testing
+interface MockLocals {
+  user: User;
+  supabase: Record<string, unknown>;
+  session: null; // Adding required session property
+}
+
+interface MockAPIContext {
+  params: Record<string, string | undefined>;
+  locals: MockLocals;
   request?: Request;
+  site?: URL;
+  generator?: string;
+  url?: URL;
+  props?: Record<string, unknown>;
 }
 
 describe("Flashcard [id] endpoints", () => {
@@ -37,17 +54,17 @@ describe("Flashcard [id] endpoints", () => {
     created_at: new Date().toISOString(),
   };
 
-  const updateCommand = {
-    front: "Updated front",
-    back: "Updated back",
-  };
-
-  const mockContext: MockContext = {
+  const mockContext: MockAPIContext = {
     params: { id: mockFlashcardId },
     locals: {
       user: { id: mockUserId } as User,
       supabase: {},
+      session: null,
     },
+    site: new URL("http://localhost:3000"),
+    generator: "test",
+    url: new URL("http://localhost:3000"),
+    props: {},
   };
 
   let mockService: {
@@ -71,22 +88,23 @@ describe("Flashcard [id] endpoints", () => {
       deleteFlashcard: vi.fn(),
     };
 
-    // Mock the FlashcardsService constructor
-    vi.spyOn(FlashcardsService.prototype, "getFlashcardById").mockImplementation(mockService.getFlashcardById);
-    vi.spyOn(FlashcardsService.prototype, "updateFlashcard").mockImplementation(mockService.updateFlashcard);
-    vi.spyOn(FlashcardsService.prototype, "deleteFlashcard").mockImplementation(mockService.deleteFlashcard);
+    // Mock the FlashcardsService methods
+    (FlashcardsService.prototype.getFlashcardById as ReturnType<typeof vi.fn>).mockImplementation(
+      mockService.getFlashcardById
+    );
+    (FlashcardsService.prototype.updateFlashcard as ReturnType<typeof vi.fn>).mockImplementation(
+      mockService.updateFlashcard
+    );
+    (FlashcardsService.prototype.deleteFlashcard as ReturnType<typeof vi.fn>).mockImplementation(
+      mockService.deleteFlashcard
+    );
   });
-
-  vi.mock("../../../../lib/services/flashcard-generator.service");
 
   describe("GET /api/flashcards/[id]", () => {
     it("should return 200 and flashcard when found", async () => {
-      // Mock the service
       mockService.getFlashcardById.mockResolvedValue(mockFlashcard);
 
-      const response = await GET({
-        ...mockContext,
-      } as APIContext);
+      const response = await GET(mockContext as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(200);
@@ -94,12 +112,10 @@ describe("Flashcard [id] endpoints", () => {
     });
 
     it("should return 404 when flashcard not found", async () => {
-      // Mock the service to throw FlashcardError
-      mockService.getFlashcardById.mockRejectedValue(createFlashcardError("Flashcard not found", "DATABASE"));
+      const error = await createError("Flashcard not found", "DATABASE");
+      mockService.getFlashcardById.mockRejectedValue(error);
 
-      const response = await GET({
-        ...mockContext,
-      } as APIContext);
+      const response = await GET(mockContext as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(404);
@@ -108,9 +124,9 @@ describe("Flashcard [id] endpoints", () => {
 
     it("should return 400 when ID is not a valid UUID", async () => {
       const response = await GET({
+        ...mockContext,
         params: { id: "not-a-uuid" },
-        locals: mockContext.locals,
-      } as APIContext);
+      } as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(400);
@@ -119,9 +135,9 @@ describe("Flashcard [id] endpoints", () => {
 
     it("should return 400 when ID is missing", async () => {
       const response = await GET({
+        ...mockContext,
         params: {},
-        locals: mockContext.locals,
-      } as APIContext);
+      } as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(400);
@@ -130,21 +146,44 @@ describe("Flashcard [id] endpoints", () => {
   });
 
   describe("PUT /api/flashcards/[id]", () => {
-    it("should return 200 and updated flashcard when successful", async () => {
-      const updatedFlashcard = { ...mockFlashcard, ...updateCommand };
+    it("should update a flashcard", async () => {
+      const updatedFlashcard = {
+        id: mockFlashcardId,
+        front: "Updated Front",
+        back: "Updated Back",
+        source: "MANUAL" as const,
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
       mockService.updateFlashcard.mockResolvedValue(updatedFlashcard);
 
       const response = await PUT({
-        ...mockContext,
-        request: new Request("http://localhost", {
+        params: { id: mockFlashcardId },
+        locals: { user: { id: "user123" }, supabase: {}, session: null },
+        request: new Request("http://localhost:3000/api/flashcards/" + mockFlashcardId, {
           method: "PUT",
-          body: JSON.stringify(updateCommand),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            front: "Updated Front",
+            back: "Updated Back",
+          }),
         }),
-      } as APIContext);
+      } as unknown as APIContext);
 
-      const data = await response.json();
+      const body = await response.json();
+
       expect(response.status).toBe(200);
-      expect(data).toEqual(updatedFlashcard);
+      expect(body).toEqual(updatedFlashcard);
+      expect(mockService.updateFlashcard).toHaveBeenCalledWith(
+        mockFlashcardId,
+        {
+          front: "Updated Front",
+          back: "Updated Back",
+        },
+        "user123"
+      );
     });
 
     it("should return 400 when request body is invalid JSON", async () => {
@@ -154,7 +193,7 @@ describe("Flashcard [id] endpoints", () => {
           method: "PUT",
           body: "invalid-json",
         }),
-      } as APIContext);
+      } as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(400);
@@ -163,18 +202,26 @@ describe("Flashcard [id] endpoints", () => {
   });
 
   describe("DELETE /api/flashcards/[id]", () => {
-    it("should return 204 when deletion is successful", async () => {
+    it("should delete a flashcard", async () => {
       mockService.deleteFlashcard.mockResolvedValue(undefined);
 
-      const response = await DELETE(mockContext as APIContext);
+      const context = {
+        ...mockContext,
+        params: { id: mockFlashcardId },
+        request: new Request("http://localhost/api/flashcards/" + mockFlashcardId, {
+          method: "DELETE",
+        }),
+      } as unknown as APIContext;
 
+      const response = await DELETE(context);
       expect(response.status).toBe(204);
     });
 
     it("should return 404 when deleting non-existent flashcard", async () => {
-      mockService.deleteFlashcard.mockRejectedValue(createFlashcardError("Flashcard not found", "DATABASE"));
+      const error = await createError("Flashcard not found", "DATABASE");
+      mockService.deleteFlashcard.mockRejectedValue(error);
 
-      const response = await DELETE(mockContext as APIContext);
+      const response = await DELETE(mockContext as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(404);
@@ -182,9 +229,10 @@ describe("Flashcard [id] endpoints", () => {
     });
 
     it("should return 403 when user tries to delete another user's flashcard", async () => {
-      mockService.deleteFlashcard.mockRejectedValue(createFlashcardError("Access denied", "VALIDATION"));
+      const error = await createError("Access denied", "VALIDATION");
+      mockService.deleteFlashcard.mockRejectedValue(error);
 
-      const response = await DELETE(mockContext as APIContext);
+      const response = await DELETE(mockContext as unknown as APIContext);
 
       const data = await response.json();
       expect(response.status).toBe(403);

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { logger } from "../src/lib/logger";
+import { LogLevel } from "../src/lib/types";
 import LoginPage from "./pages/LoginPage";
 import GeneratePage from "./pages/GeneratePage";
 
@@ -26,7 +27,7 @@ test.describe("Flashcard Generation", () => {
 
     // Poczekaj na przekierowanie do strony /generate
     await page.waitForURL(/\/generate$/, { timeout: 10000 });
-    logger.debug("Successfully logged in, URL:", page.url());
+    logger.debug("Successfully logged in", { url: page.url() });
   });
 
   test("should show source text input form", async ({ page }) => {
@@ -112,12 +113,13 @@ test.describe("Flashcard Generation", () => {
     });
 
     // Log information about found cards
-    logger.debug(`Found ${cardIds.length} cards with IDs:`, cardIds);
+    logger.debug("Found cards", { count: cardIds.length, cardIds });
 
     // Accept the first 2 cards if available
     if (cardIds.length >= 2) {
-      await generatePage.acceptCandidate(cardIds[0]);
-      await generatePage.acceptCandidate(cardIds[1]);
+      const validCardIds = cardIds.filter((id): id is string => id !== undefined);
+      await generatePage.acceptCandidate(validCardIds[0]);
+      await generatePage.acceptCandidate(validCardIds[1]);
 
       // And save only accepted flashcards
       await generatePage.saveAcceptedFlashcards();
@@ -126,7 +128,7 @@ test.describe("Flashcard Generation", () => {
       await expect(page).toHaveScreenshot("generated-flashcards.png");
     } else {
       // If no candidates were generated, fail the test
-      expect(cardIds.length).toBeGreaterThan(0, "No flashcard candidates were generated");
+      expect(cardIds.length).toBeGreaterThan(0);
     }
   });
 
