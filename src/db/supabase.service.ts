@@ -3,7 +3,7 @@ import type { Database } from "./database.types";
 import { logger } from "../lib/logger";
 
 // Use the service role key which bypasses RLS
-const supabaseUrl = import.meta.env.SUPABASE_URL;
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseServiceKey) {
