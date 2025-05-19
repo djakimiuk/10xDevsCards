@@ -6,14 +6,6 @@ import { logger } from "../lib/logger";
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// --- DODAJ LOGOWANIE TUTAJ ---
-console.log("Cloudflare SUPABASE_SERVICE_ROLE_KEY:", supabaseServiceKey ? "SET" : "NOT SET or EMPTY");
-if (supabaseServiceKey) {
-  console.log("Cloudflare SUPABASE_SERVICE_ROLE_KEY length:", supabaseServiceKey.length);
-  console.log("Cloudflare SUPABASE_SERVICE_ROLE_KEY first 5 chars:", supabaseServiceKey.substring(0, 5));
-}
-// --- KONIEC LOGOWANIA ---
-
 if (!supabaseServiceKey) {
   logger.error("SUPABASE_SERVICE_ROLE_KEY is not defined in environment variables");
 }
