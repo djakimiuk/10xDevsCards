@@ -37,7 +37,7 @@ export class OpenRouterService {
   private readonly _apiEndpoint = "https://openrouter.ai/api/v1/chat/completions";
   private readonly _maxRetries = 3;
   private readonly _baseDelay = 1000; // 1 second
-  private readonly _defaultModel = "meta-llama/llama-4-maverick:free";
+  private readonly _defaultModel = "mistralai/mistral-7b-instruct:free";
   private _testOptions: TestOptions;
 
   constructor(
@@ -45,7 +45,7 @@ export class OpenRouterService {
       isTest: false,
       testApiKey: "",
       testSiteUrl: "https://test.com",
-      testModelName: "google/gemini-2.5-pro-exp-03-25:free",
+      testModelName: "mistralai/mistral-7b-instruct:free",
       testSystemMessage: "You are a helpful assistant.",
     }
   ) {
