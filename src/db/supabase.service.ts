@@ -4,10 +4,10 @@ import { logger } from "../lib/logger";
 
 // Use the service role key which bypasses RLS
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseServiceKey = import.meta.env.PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseServiceKey) {
-  logger.error("SUPABASE_SERVICE_ROLE_KEY is not defined in environment variables");
+  logger.error("PUBLIC_SUPABASE_SERVICE_ROLE_KEY is not defined in environment variables");
 }
 
 // This client should only be used on the server side for operations
