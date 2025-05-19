@@ -115,15 +115,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const errorName = error instanceof Error ? error.name : "UnknownError";
     const errorStack = error instanceof Error ? error.stack : "No stack trace available";
 
-    // Attempt to read the problematic env var here to include in the error response
-    const serviceKeyStatus = import.meta.env.SUPABASE_SERVICE_ROLE_KEY ? "SET" : "NOT SET or EMPTY";
-    const serviceKeyLength = import.meta.env.SUPABASE_SERVICE_ROLE_KEY?.length ?? 0;
-
     logger.error("Unexpected error in flashcard generation endpoint", {
       error,
       errorMessage,
-      serviceKeyStatus, // Log it here too
-      serviceKeyLength,
     });
 
     return new Response(
@@ -131,11 +125,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         error: {
           message: errorMessage,
           name: errorName,
-          // Include diagnostic info about the env var in the response
-          diagnostic_SUPABASE_SERVICE_ROLE_KEY_status: serviceKeyStatus,
-          diagnostic_SUPABASE_SERVICE_ROLE_KEY_length: serviceKeyLength,
-          // Optionally, include a few characters if set, for verification (BE CAREFUL WITH SENSITIVE DATA)
-          // diagnostic_SUPABASE_SERVICE_ROLE_KEY_snippet: import.meta.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 5) ?? "N/A",
           stack: errorStack, // Include stack trace for more context if available
         },
       }),
